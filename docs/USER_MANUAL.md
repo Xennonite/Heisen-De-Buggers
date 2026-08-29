@@ -154,3 +154,61 @@ From the **Statutory Reports & Legal Notice Export** panel, click any of the 4 e
 2. The drawer displays past inspection records stored in the SQLite database.
 3. Search by **Scan ID** (e.g., `MV-2026-XXXX`), **Category**, or **Compliance Status**.
 4. Click any inspection card to instantly reload its image, bounding boxes, score, and findings onto the dashboard canvas.
+
+---
+
+## 4. Setup & Installation Instructions
+
+Follow these steps to set up and run MetroVerity on your local machine:
+
+### 4.1 Prerequisites
+- **Git**
+- **Node.js** (v18 or higher) & **npm**
+- **Python** (3.10 is specifically required for compatibility with the computer vision models)
+- **Tesseract OCR** (System package required for fallback OCR)
+
+### 4.2 Clone the Repository
+```bash
+git clone https://github.com/yourusername/Heisen-De-Buggers.git
+cd Heisen-De-Buggers
+```
+
+### 4.3 Backend Setup (FastAPI & Python 3.10)
+1. **Navigate to the backend directory:**
+   ```bash
+   cd backend
+   ```
+2. **Create and activate a Python 3.10 virtual environment:**
+   ```bash
+   python3.10 -m venv .venv
+   source .venv/bin/activate
+   ```
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   *(Note: The `requirements.txt` includes specific versions of paddlepaddle and paddleocr that are stable for Python 3.10).*
+4. **Start the backend server:**
+   ```bash
+   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+   The backend API will be available at `http://localhost:8000`.
+
+### 4.4 Frontend Setup (React & Vite)
+1. **Open a new terminal window** and navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. **Install Node dependencies:**
+   ```bash
+   npm install
+   ```
+3. **Start the frontend development server:**
+   ```bash
+   npm run dev
+   ```
+4. **Access the application:**
+   Open your web browser and navigate to the local URL provided by Vite (typically `http://localhost:5173`).
+
+### 4.5 Usage
+Once both the backend and frontend servers are running, you can interact with the MetroVerity dashboard, upload product images, and run statutory compliance inspections locally.

@@ -22,14 +22,29 @@ export default function ComplianceChecklist({ scanResult }) {
       title: 'Rule 6(1): Mandatory Declarations',
       desc: 'Name & address of manufacturer, packing date, and consumer care.',
       pass: rule_checklist.rule_6_mandatory_fields !== false,
-      detail: `Mfg: ${declarations.manufacturer_name?.present ? 'Detected' : 'Missing'}, Care: ${declarations.consumer_care?.present ? 'Detected' : 'Missing'}`,
+      detail: (() => {
+        if (rule_checklist.rule_6_mandatory_fields !== false) return 'All fields detected';
+        const missing = [];
+        if (!declarations.manufacturer_name?.present) missing.push('Mfg Name');
+        if (!declarations.manufacturer_address?.present) missing.push('Address');
+        if (!declarations.pin_code?.present) missing.push('PIN');
+        if (!declarations.country_of_origin?.present) missing.push('Origin');
+        if (!declarations.mfg_date?.present) missing.push('Date');
+        if (!declarations.consumer_care?.present) missing.push('Care');
+        return `Missing: ${missing.join(', ')}`;
+      })(),
     },
     {
       id: 'rule_6_1_e',
       title: 'Rule 6(1)(e): MRP Format & Statutory Tax Tag',
       desc: 'Must declare MRP with "(incl. of all taxes)" or "(inclusive of all taxes)".',
       pass: rule_checklist.rule_6_1_e_mrp_syntax !== false,
-      detail: mrp.has_inclusive_of_taxes_tag ? 'Mandatory tax phrase present' : 'Missing "(incl. of all taxes)" tag',
+      detail: (() => {
+        if (rule_checklist.rule_6_1_e_mrp_syntax !== false) return `Price: Rs. ${mrp.declared_price} (Compliant)`;
+        if (!mrp.present) return 'MRP value not detected';
+        if (!mrp.has_inclusive_of_taxes_tag) return 'Missing "(incl. of all taxes)" tag';
+        return 'Invalid MRP Format';
+      })(),
     },
     {
       id: 'rule_7',
