@@ -14,7 +14,7 @@ export default function Navbar({ onOpenHistory, onOpenMpeModal }) {
             <div className="flex items-center space-x-2">
               <span className="font-bold text-lg tracking-tight text-white">MetroVerity</span>
               <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                SIH 2026 • PS 26034
+                LMPC Rules 2011
               </span>
             </div>
             <p className="text-xs text-slate-400">Metrological Computer Vision & Statutory Enforcement</p>

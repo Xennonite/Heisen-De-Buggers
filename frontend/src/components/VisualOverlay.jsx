@@ -6,6 +6,7 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
   const [showClearance, setShowClearance] = useState(true);
   const [selectedBox, setSelectedBox] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [surfaceIndex, setSurfaceIndex] = useState(0);
 
   if (!scanResult) {
     return (
@@ -22,12 +23,23 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
   }
 
   const {
-    bounding_boxes = [],
     clearance_zone = {},
     pdp_area_cm2 = 0,
     required_font_height_mm = 2.5,
-    original_dimensions = { width: 600, height: 800 },
+    surfaces = [],
   } = scanResult;
+  
+  const hasSurfaces = surfaces && surfaces.length > 0;
+  
+  const currentSurface = hasSurfaces ? surfaces[surfaceIndex] : {
+    bounding_boxes: scanResult.bounding_boxes || [],
+    image_url: scanResult.image_url || imageUrl,
+    original_dimensions: scanResult.original_dimensions || { width: 600, height: 800 }
+  };
+  
+  const bounding_boxes = currentSurface.bounding_boxes;
+  const currentImageUrl = currentSurface.image_url;
+  const original_dimensions = currentSurface.original_dimensions;
 
   const clearanceBox = clearance_zone?.clearance_box;
   const isClearanceCompliant = clearance_zone?.is_compliant !== false;
@@ -100,6 +112,30 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
           </div>
         </div>
       </div>
+      
+      {/* Thumbnail Carousel */}
+      {hasSurfaces && surfaces.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar border-b border-slate-800">
+          {surfaces.map((surface, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                setSurfaceIndex(idx);
+                setSelectedBox(null);
+                setZoom(1);
+              }}
+              className={`relative flex-shrink-0 rounded-lg border-2 overflow-hidden transition ${
+                surfaceIndex === idx ? 'border-sky-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'
+              }`}
+            >
+              <img src={surface.image_url} alt={`Surface ${idx}`} className="h-16 w-16 object-cover" />
+              <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-center text-white py-0.5">
+                {idx === 0 ? 'PDP (Front)' : `Side ${idx}`}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Main Canvas Viewport */}
       <div className="relative bg-slate-950 rounded-xl border border-slate-800 overflow-hidden flex items-center justify-center min-h-[460px] p-2">
@@ -109,7 +145,7 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
         >
           {/* Background Packaging Image */}
           <img
-            src={imageUrl || scanResult.image_url}
+            src={currentImageUrl}
             alt="Packaging inspection"
             className="max-h-[500px] w-auto rounded object-contain shadow-2xl block"
           />
