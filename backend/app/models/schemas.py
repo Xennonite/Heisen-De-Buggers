@@ -77,6 +77,12 @@ class RuleChecklist(BaseModel):
     second_schedule_pack_size: bool = True
 
 
+class SurfaceItem(BaseModel):
+    image_url: str
+    original_dimensions: Dict[str, int]
+    bounding_boxes: List[BoundingBoxItem]
+
+
 class ScanResponse(BaseModel):
     scan_id: str
     timestamp: str
@@ -103,6 +109,7 @@ class ScanResponse(BaseModel):
     barcodes: List[BarcodeItem] = Field(default_factory=list)
     image_url: Optional[str] = None
     original_dimensions: Dict[str, int] = Field(default_factory=dict)  # {"width": px, "height": px}
+    surfaces: List[SurfaceItem] = Field(default_factory=list)
 
 
 class MpeSampleItem(BaseModel):

@@ -22,7 +22,7 @@ router = APIRouter(prefix="/audit", tags=["Audit & Scanning"])
 
 @router.post("/scan", response_model=ScanResponse)
 async def scan_package(
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     package_height_mm: float = Form(...),
     package_width_mm: float = Form(...),
     package_depth_mm: Optional[float] = Form(0.0),
@@ -32,56 +32,101 @@ async def scan_package(
     db: Session = Depends(get_sync_db),
 ):
     """
-    Scans packaged commodity label, extracts spatial declarations, evaluates statutory metrology
+    Scans packaged commodity label(s), extracts spatial declarations, evaluates statutory metrology
     compliance under LMPC Rules 2011, and generates 0-100% compliance audit findings.
+    Accepts multiple images. The first image is the PDP.
     """
     if package_height_mm <= 0 or package_width_mm <= 0:
         raise HTTPException(status_code=400, detail="Package height and width in mm must be strictly greater than zero.")
+        
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one image must be uploaded.")
 
-    # 1. Save uploaded file
     scan_id = f"MV-2026-{uuid.uuid4().hex[:6].upper()}"
-    ext = os.path.splitext(file.filename)[1] or ".jpg"
-    filename = f"{scan_id}{ext}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
+    
+    surfaces = []
+    combined_extracted_text = ""
+    barcodes_list = []
+    
+    pdp_img_w = 0
+    pdp_img_h = 0
+    pdp_token_boxes = []
+    pdp_scale_factor = 1.0
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    for idx, file in enumerate(files):
+        # 1. Save uploaded file
+        ext = os.path.splitext(file.filename)[1] or ".jpg"
+        filename = f"{scan_id}_surface_{idx}{ext}"
+        file_path = os.path.join(UPLOAD_DIR, filename)
 
-    # 2. Load and preprocess image
-    image_bgr = load_image_with_exif(file_path)
-    if image_bgr is None:
-        raise HTTPException(status_code=400, detail="Failed to decode uploaded image.")
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    rectified_img, was_rectified = auto_rectify_label(image_bgr)
-    img_h, img_w = rectified_img.shape[:2]
+        # 2. Load and preprocess image
+        image_bgr = load_image_with_exif(file_path)
+        if image_bgr is None:
+            continue
 
-    # 3. Spatial scale factor: S = px / mm
-    scale_factor = compute_scale_factor(package_height_px=img_h, package_height_mm=package_height_mm)
+        rectified_img, was_rectified = auto_rectify_label(image_bgr)
+        img_h, img_w = rectified_img.shape[:2]
 
-    # 4. OCR Extraction & Spatial Hierarchy
-    extracted_text, token_boxes = run_ocr(
-        image_bgr=rectified_img,
-        scale_factor=scale_factor,
-        required_font_height_mm=2.5,  # preliminary threshold
-    )
+        # 3. Spatial scale factor (Only for the first image, assuming it's the PDP)
+        if idx == 0:
+            # Aspect-Ratio Orientation Swap
+            img_aspect = img_w / img_h
+            phys_aspect = package_width_mm / package_height_mm
+            
+            # If image is landscape but physical is portrait (or vice versa), swap physical dimensions
+            if (img_aspect > 1 and phys_aspect < 1) or (img_aspect < 1 and phys_aspect > 1):
+                package_width_mm, package_height_mm = package_height_mm, package_width_mm
+                
+            pdp_scale_factor = compute_scale_factor(package_height_px=img_h, package_height_mm=package_height_mm)
+            pdp_img_h, pdp_img_w = img_h, img_w
+            scale_factor = pdp_scale_factor
+        else:
+            # Use the PDP's scale factor for subsequent sides assuming same distance
+            scale_factor = pdp_scale_factor
 
-    # 5. Barcode / QR Decoding
-    barcodes = decode_barcodes(rectified_img)
+        # 4. OCR Extraction
+        extracted_text, token_boxes = run_ocr(
+            image_bgr=rectified_img,
+            scale_factor=scale_factor,
+            required_font_height_mm=2.5,
+        )
+        
+        combined_extracted_text += f" {extracted_text}"
+        if idx == 0:
+            pdp_token_boxes = token_boxes
+            
+        barcodes = decode_barcodes(rectified_img)
+        barcodes_list.extend(barcodes)
+        
+        surfaces.append({
+            "image_url": f"/uploads/{filename}",
+            "original_dimensions": {"width": img_w, "height": img_h},
+            "bounding_boxes": token_boxes
+        })
 
-    # 6. Evaluate Statutory Compliance Engine
+    if not surfaces:
+        raise HTTPException(status_code=400, detail="Failed to process uploaded images.")
+
+    # 5. Evaluate Statutory Compliance Engine using combined text, but PDP spatial boxes
     audit_results = evaluate_statutory_compliance(
-        extracted_text=extracted_text,
+        extracted_text=combined_extracted_text,
         package_height_mm=package_height_mm,
         package_width_mm=package_width_mm,
         package_depth_mm=package_depth_mm or 0.0,
         container_type=container_type,
         category=category,
-        bounding_boxes=token_boxes,
-        image_width=img_w,
-        image_height=img_h,
+        bounding_boxes=pdp_token_boxes,
+        image_width=pdp_img_w,
+        image_height=pdp_img_h,
     )
+    
+    # Overwrite the PDP bounding boxes in surfaces[0] with the enriched boxes from the audit engine
+    surfaces[0]["bounding_boxes"] = audit_results["bounding_boxes"]
 
-    # 7. Construct Response
+    # 6. Construct Response
     response_data = {
         "scan_id": scan_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -105,12 +150,13 @@ async def scan_package(
         "standard_pack_size": audit_results["standard_pack_size"],
         "violations": audit_results["violations"],
         "bounding_boxes": audit_results["bounding_boxes"],
-        "barcodes": barcodes,
-        "image_url": f"/uploads/{filename}",
-        "original_dimensions": {"width": img_w, "height": img_h},
+        "barcodes": barcodes_list,
+        "image_url": surfaces[0]["image_url"],
+        "original_dimensions": surfaces[0]["original_dimensions"],
+        "surfaces": surfaces
     }
 
-    # 8. Persist to Database
+    # 7. Persist to Database
     try:
         record = ScanRecord(
             scan_id=scan_id,
@@ -125,7 +171,7 @@ async def scan_package(
             compliance_score=audit_results["compliance_score"],
             status=audit_results["status"],
             estimated_compounding_fine_inr=audit_results["estimated_compounding_fine_inr"],
-            image_filename=filename,
+            image_filename=os.path.basename(surfaces[0]["image_url"]),
             audit_data_json=json.dumps(response_data),
         )
         db.add(record)
