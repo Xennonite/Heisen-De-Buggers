@@ -96,7 +96,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950/60 py-4 text-center text-xs text-slate-500">
-        <p>MetroVerity — Smart India Hackathon (SIH 2026) Prototype • Problem Statement ID: 26034</p>
+        <p>Strictly adhering to The Legal Metrology (Packaged Commodities) Rules, 2011.</p>
         <p className="text-[10px] text-slate-600 mt-0.5">Ministry of Consumer Affairs, Food & Public Distribution • Department of Consumer Affairs (DoCA)</p>
       </footer>
     </div>

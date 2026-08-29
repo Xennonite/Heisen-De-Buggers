@@ -49,8 +49,8 @@ const PRESETS = [
 ];
 
 export default function IngestionForm({ onScanSubmit, isScanning }) {
-  const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState('');
+  const [files, setFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
   const [heightMm, setHeightMm] = useState(150);
   const [widthMm, setWidthMm] = useState(80);
   const [depthMm, setDepthMm] = useState(40);
@@ -61,12 +61,24 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
-    const selected = e.target.files[0];
-    if (selected) {
-      setFile(selected);
-      setPreviewUrl(URL.createObjectURL(selected));
+    const selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 0) {
+      setFiles(prev => [...prev, ...selectedFiles]);
+      const newUrls = selectedFiles.map(f => URL.createObjectURL(f));
+      setPreviewUrls(prev => [...prev, ...newUrls]);
       setActivePreset(null);
     }
+  };
+  
+  const removeFile = (index) => {
+    const updatedFiles = [...files];
+    updatedFiles.splice(index, 1);
+    setFiles(updatedFiles);
+    
+    const updatedUrls = [...previewUrls];
+    window.URL.revokeObjectURL(updatedUrls[index]);
+    updatedUrls.splice(index, 1);
+    setPreviewUrls(updatedUrls);
   };
 
   const handlePresetSelect = (preset) => {
@@ -123,20 +135,20 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
 
     canvas.toBlob((blob) => {
       const presetFile = new File([blob], `${preset.id}.jpg`, { type: 'image/jpeg' });
-      setFile(presetFile);
-      setPreviewUrl(URL.createObjectURL(presetFile));
+      setFiles([presetFile]);
+      setPreviewUrls([URL.createObjectURL(presetFile)]);
     }, 'image/jpeg');
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!file) {
-      alert('Please upload a product label image or select a demo preset.');
+    if (files.length === 0) {
+      alert('Please upload at least one product label image or select a demo preset.');
       return;
     }
 
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach(f => formData.append('files', f));
     formData.append('package_height_mm', heightMm);
     formData.append('package_width_mm', widthMm);
     formData.append('package_depth_mm', depthMm);
@@ -188,47 +200,73 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Upload Zone */}
         <div>
-          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-2">
-            Package Label Image (.jpg, .png)
+          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-2 flex justify-between">
+            <span>Package Images (.jpg, .png)</span>
+            {files.length > 0 && <span className="text-sky-400">{files.length} Selected</span>}
           </label>
           <div
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center min-h-[140px] ${
-              previewUrl
+            className={`border-2 border-dashed rounded-xl p-4 text-center transition flex flex-col min-h-[140px] ${
+              files.length > 0
                 ? 'border-sky-500/40 bg-slate-950/60'
-                : 'border-slate-700 hover:border-slate-500 bg-slate-950/30'
+                : 'border-slate-700 hover:border-slate-500 bg-slate-950/30 cursor-pointer justify-center items-center'
             }`}
+            onClick={(e) => {
+              if (files.length === 0) fileInputRef.current?.click();
+            }}
           >
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={handleFileChange}
             />
 
-            {previewUrl ? (
-              <div className="flex items-center space-x-4">
-                <img
-                  src={previewUrl}
-                  alt="Packaging preview"
-                  className="w-20 h-24 object-cover rounded-lg border border-slate-700 shadow-md"
-                />
-                <div className="text-left">
-                  <span className="text-xs font-medium text-white block">{file?.name}</span>
-                  <span className="text-[11px] text-slate-400">Click to replace image</span>
-                  <span className="text-[10px] text-sky-400 block mt-1">Ready for Computer Vision Analysis</span>
+            {files.length > 0 ? (
+              <div className="w-full">
+                <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                  {previewUrls.map((url, idx) => (
+                    <div key={idx} className="relative flex-shrink-0 group">
+                      <img
+                        src={url}
+                        alt={`Preview ${idx + 1}`}
+                        className="w-20 h-24 object-cover rounded-lg border border-slate-700 shadow-md"
+                      />
+                      <div className="absolute top-1 left-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded">
+                        {idx === 0 ? 'PDP (Front)' : `Side ${idx}`}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                        className="absolute -top-2 -right-2 bg-rose-500 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center shadow-lg hover:bg-rose-600 z-10"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                  <button 
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                    className="w-20 h-24 flex-shrink-0 rounded-lg border border-dashed border-sky-500/50 bg-sky-500/10 flex flex-col items-center justify-center text-sky-400 hover:bg-sky-500/20 transition"
+                  >
+                    <Upload className="w-5 h-5 mb-1" />
+                    <span className="text-[10px] font-medium">Add Image</span>
+                  </button>
+                </div>
+                <div className="text-left mt-2 text-[10px] text-sky-400">
+                  Ready for Computer Vision Analysis. Ensure the first image is the Principal Display Panel (Front).
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 pointer-events-none">
                 <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-sky-400">
                   <Upload className="w-5 h-5" />
                 </div>
                 <div className="text-xs text-slate-300">
                   <span className="font-semibold text-sky-400">Click to upload</span> or drag and drop
                 </div>
-                <p className="text-[11px] text-slate-500">Multi-angle package frontal / wrapper snapshot</p>
+                <p className="text-[11px] text-slate-500">Multi-angle package frontal / wrapper snapshot. Upload multiple files at once.</p>
               </div>
             )}
           </div>
@@ -245,7 +283,7 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Height ($H$) mm</label>
+              <label className="text-[11px] text-slate-400 block mb-1">Height (H) mm</label>
               <input
                 type="number"
                 step="1"
@@ -258,7 +296,7 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Width ($W$) mm</label>
+              <label className="text-[11px] text-slate-400 block mb-1">Width (W) mm</label>
               <input
                 type="number"
                 step="1"
@@ -271,7 +309,7 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Depth ($D$) mm</label>
+              <label className="text-[11px] text-slate-400 block mb-1">Depth (D) mm</label>
               <input
                 type="number"
                 step="1"
@@ -293,9 +331,9 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
               onChange={(e) => setContainerType(e.target.value)}
               className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
             >
-              <option value="rectangular">Rectangular ($A = H \times W$)</option>
-              <option value="cylindrical">Cylindrical ($A = 0.40 \times H \times C$)</option>
-              <option value="irregular">Irregular ($A = 0.40 \times$ Surface)</option>
+              <option value="rectangular">Rectangular</option>
+              <option value="cylindrical">Cylindrical</option>
+              <option value="irregular">Irregular</option>
             </select>
           </div>
 
@@ -306,11 +344,26 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
               onChange={(e) => setCategory(e.target.value)}
               className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
             >
-              <option value="biscuits">Biscuits (2nd Sched)</option>
-              <option value="tea">Tea / Coffee (2nd Sched)</option>
-              <option value="soap">Soap / Detergent (2nd Sched)</option>
-              <option value="edible_oil">Edible Oils (2nd Sched)</option>
               <option value="general">General Packaged Goods</option>
+              <option value="baby_food">1. Baby food</option>
+              <option value="weaning_food">2. Weaning food</option>
+              <option value="biscuits">3. Biscuits</option>
+              <option value="bread">4. Bread</option>
+              <option value="butter_margarine">5. Butter and Margarine</option>
+              <option value="cereals_pulses">6. Cereals and Pulses</option>
+              <option value="coffee">7. Coffee</option>
+              <option value="tea">8. Tea</option>
+              <option value="beverage_materials">9. Materials for beverages</option>
+              <option value="edible_oil_ghee">10. Edible Oils, Vanaspati, Ghee</option>
+              <option value="milk_powder">11. Milk Powder</option>
+              <option value="non_soapy_detergents">12. Non-soapy detergents (powder)</option>
+              <option value="rice_flour_atta">13. Rice, flour, atta, rawa, suji</option>
+              <option value="salt">14. Salt</option>
+              <option value="soaps">15. Soaps (Laundry, Toilet, Detergent bars)</option>
+              <option value="aerated_drinks">16. Aerated soft drinks, non-alcoholic beverages</option>
+              <option value="mineral_water">17. Mineral / Drinking water</option>
+              <option value="cement">18. Cement in bags</option>
+              <option value="paint_varnish">19. Paint, varnish etc.</option>
             </select>
           </div>
         </div>
