@@ -22,9 +22,10 @@ from app.models.schemas import ExportRequest
 router = APIRouter(prefix="/report", tags=["Report & Notice Exports"])
 
 
-def generate_pdf_report(data: Dict[str, Any], is_form_a: bool = False) -> io.BytesIO:
+def generate_pdf_report(data: Dict[str, Any], form_type: Optional[str] = None) -> io.BytesIO:
     """
-    Generates high-resolution PDF Inspection Dossier or Seventh Schedule Form A Notice.
+    Generates high-resolution PDF Inspection Dossier or Seventh Schedule Form Notice.
+    form_type: None (Dossier), 'A' (Form A), 'B' (Form B)
     """
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -91,7 +92,13 @@ def generate_pdf_report(data: Dict[str, Any], is_form_a: bool = False) -> io.Byt
     story.append(Paragraph("DEPARTMENT OF CONSUMER AFFAIRS — LEGAL METROLOGY DIVISION", sub_title_style))
     story.append(Spacer(1, 8))
 
-    doc_type_title = "SEVENTH SCHEDULE — FORM A<br/>NOTICE TO THE MANUFACTURER / PACKER UNDER RULES 27 & 28" if is_form_a else "STATUTORY METROLOGY COMPLIANCE INSPECTION DOSSIER"
+    if form_type == "A":
+        doc_type_title = "SEVENTH SCHEDULE — FORM A<br/>NOTICE TO THE MANUFACTURER / PACKER UNDER RULES 27 & 28"
+    elif form_type == "B":
+        doc_type_title = "SEVENTH SCHEDULE — FORM B<br/>NOTICE OF COMPOUNDING OF OFFENSE UNDER SECTION 48"
+    else:
+        doc_type_title = "STATUTORY METROLOGY COMPLIANCE INSPECTION DOSSIER"
+
     story.append(Paragraph(f"<b>{doc_type_title}</b>", title_style))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0284c7"), spaceAfter=10))
 
@@ -125,7 +132,7 @@ def generate_pdf_report(data: Dict[str, Any], is_form_a: bool = False) -> io.Byt
             Paragraph("<b>Container Geometry:</b>", body_style),
             Paragraph(str(data.get("container_type", "Rectangular")).capitalize(), body_style),
             Paragraph("<b>Assessed Compounding Fine:</b>", body_style),
-            Paragraph(f"<b>₹ {fine:,}</b>", body_style),
+            Paragraph(f"<b>Rs. {fine:,}</b>", body_style),
         ],
     ]
 
@@ -186,7 +193,7 @@ def generate_pdf_report(data: Dict[str, Any], is_form_a: bool = False) -> io.Byt
         ],
         [
             Paragraph("MRP Declaration", body_style),
-            Paragraph(f"₹ {mrp.get('declared_price', 'N/A')}", body_style),
+            Paragraph(f"Rs. {mrp.get('declared_price', 'N/A')}", body_style),
             Paragraph(f"Tax Tag: {'Included (PASS)' if mrp.get('has_inclusive_of_taxes_tag') else 'MISSING (FAIL)'}", body_style)
         ],
         [
@@ -219,7 +226,7 @@ def generate_pdf_report(data: Dict[str, Any], is_form_a: bool = False) -> io.Byt
                 Paragraph(v.get("rule", ""), body_style),
                 Paragraph(f"<font color='{sev_color}'><b>{v.get('severity', '')}</b></font>", body_style),
                 Paragraph(v.get("description", ""), body_style),
-                Paragraph(f"₹ {v.get('estimated_fine_inr', 0):,}<br/><font size='7'>{v.get('compounding_section', '')}</font>", body_style),
+                Paragraph(f"Rs. {v.get('estimated_fine_inr', 0):,}<br/><font size='7'>{v.get('compounding_section', '')}</font>", body_style),
             ])
         t_v = Table(v_rows, colWidths=[100, 70, 270, 100])
         t_v.setStyle(TableStyle([
@@ -254,6 +261,21 @@ def generate_pdf_report(data: Dict[str, Any], is_form_a: bool = False) -> io.Byt
     ]))
     story.append(t_sig)
 
+    # ADD LEGAL SIGNATURE BLOCKS FOR FORM A AND B
+    if form_type in ["A", "B"]:
+        story.append(Spacer(1, 40))
+        story.append(Paragraph(f"This Notice serves as an official communication under the Legal Metrology Act, 2009.", body_style))
+        story.append(Spacer(1, 30))
+        
+        signatures = [
+            [
+                Paragraph("__________________________<br/><b>Signature of Inspecting Officer</b><br/>Name:<br/>Designation:", body_style),
+                Paragraph("__________________________<br/><b>Signature of Manufacturer/Packer</b><br/>Name:<br/>Date:", body_style),
+            ]
+        ]
+        t_signatures = Table(signatures, colWidths=[270, 270])
+        story.append(t_signatures)
+
     doc.build(story)
     buffer.seek(0)
     return buffer
@@ -276,7 +298,7 @@ def generate_docx_report(data: Dict[str, Any]) -> io.BytesIO:
     p.add_run(f"Date/Time: {data.get('timestamp', 'N/A')}\n")
     p.add_run(f"Compliance Score: {data.get('compliance_score', 0)} / 100\n")
     p.add_run(f"Overall Status: {data.get('status', 'UNKNOWN')}\n")
-    p.add_run(f"Estimated Compounding Penalty: ₹ {data.get('estimated_compounding_fine_inr', 0):,}\n")
+    p.add_run(f"Estimated Compounding Penalty: Rs. {data.get('estimated_compounding_fine_inr', 0):,}\n")
     p.add_run(f"Principal Display Panel Area: {data.get('pdp_area_cm2', 0)} cm²\n")
     p.add_run(f"Required Minimum Font Height: {data.get('required_font_height_mm', 0)} mm\n")
 
@@ -321,7 +343,7 @@ def generate_docx_report(data: Dict[str, Any]) -> io.BytesIO:
             vr[0].text = v.get("rule", "")
             vr[1].text = v.get("severity", "")
             vr[2].text = v.get("description", "")
-            vr[3].text = f"₹ {v.get('estimated_fine_inr', 0):,}"
+            vr[3].text = f"Rs. {v.get('estimated_fine_inr', 0):,}"
     else:
         doc.add_paragraph("No statutory violations detected.")
 
@@ -365,14 +387,14 @@ def generate_csv_report(data: Dict[str, Any]) -> str:
 @router.post("/export")
 def export_report(payload: ExportRequest):
     """
-    Exports inspection results in PDF, DOCX, CSV, or Seventh Schedule Form A Notice.
+    Exports inspection results in PDF, DOCX, CSV, or Seventh Schedule Forms.
     """
     data = payload.scan_data or {}
     export_type = payload.export_type.lower().strip()
     scan_id = data.get("scan_id", "report")
 
     if export_type == "pdf":
-        pdf_buf = generate_pdf_report(data, is_form_a=False)
+        pdf_buf = generate_pdf_report(data, form_type=None)
         return StreamingResponse(
             pdf_buf,
             media_type="application/pdf",
@@ -380,11 +402,19 @@ def export_report(payload: ExportRequest):
         )
 
     elif export_type == "seventh_schedule_form_a":
-        pdf_buf = generate_pdf_report(data, is_form_a=True)
+        pdf_buf = generate_pdf_report(data, form_type="A")
         return StreamingResponse(
             pdf_buf,
             media_type="application/pdf",
             headers={"Content-Disposition": f"attachment; filename=Seventh_Schedule_Form_A_{scan_id}.pdf"},
+        )
+        
+    elif export_type == "seventh_schedule_form_b":
+        pdf_buf = generate_pdf_report(data, form_type="B")
+        return StreamingResponse(
+            pdf_buf,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=Seventh_Schedule_Form_B_{scan_id}.pdf"},
         )
 
     elif export_type == "docx":
@@ -404,4 +434,4 @@ def export_report(payload: ExportRequest):
         )
 
     else:
-        raise HTTPException(status_code=400, detail=f"Unsupported export type '{export_type}'. Supported: pdf, seventh_schedule_form_a, docx, csv.")
+        raise HTTPException(status_code=400, detail=f"Unsupported export type '{export_type}'. Supported: pdf, seventh_schedule_form_a, seventh_schedule_form_b, docx, csv.")

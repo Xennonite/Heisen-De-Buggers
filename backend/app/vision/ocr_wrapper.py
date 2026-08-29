@@ -3,6 +3,10 @@ import cv2
 import numpy as np
 from PIL import Image
 from typing import List, Dict, Any, Tuple, Optional
+import math
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Attempt pyzbar import
 try:
@@ -11,12 +15,14 @@ try:
 except Exception:
     PYZBAR_AVAILABLE = False
 
-# Attempt pytesseract import
 try:
-    import pytesseract
-    PYTESSERACT_AVAILABLE = True
-except Exception:
-    PYTESSERACT_AVAILABLE = False
+    from paddleocr import PaddleOCR
+    # Initialize PaddleOCR globally to avoid loading weights on every request
+    ocr_engine = PaddleOCR(use_angle_cls=True, lang='en')
+    PADDLE_AVAILABLE = True
+except Exception as e:
+    logger.error(f"Failed to load PaddleOCR: {e}")
+    PADDLE_AVAILABLE = False
 
 
 def decode_barcodes(image_bgr: np.ndarray) -> List[Dict[str, Any]]:
@@ -41,48 +47,9 @@ def decode_barcodes(image_bgr: np.ndarray) -> List[Dict[str, Any]]:
                 "box_pixels": [int(x), int(y), int(w), int(h)],
             })
     except Exception as e:
-        print(f"Barcode decoding notice: {e}")
+        logger.error(f"Barcode decoding notice: {e}")
 
     return barcodes
-
-
-def extract_text_regions_cv(image_bgr: np.ndarray) -> List[Dict[str, Any]]:
-    """
-    Uses OpenCV Morphological Gradient and Contour Analysis to detect
-    candidate text bounding boxes on the packaging surface.
-    """
-    regions = []
-    if image_bgr is None or image_bgr.size == 0:
-        return regions
-
-    img_h, img_w = image_bgr.shape[:2]
-    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-
-    # Morphological gradient to highlight high-frequency text edges
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    grad = cv2.morphologyEx(gray, cv2.MORPH_GRADIENT, kernel)
-
-    # Binarize
-    _, thresh = cv2.threshold(grad, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-
-    # Connect neighboring text characters horizontally
-    rect_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 3))
-    connected = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, rect_kernel)
-
-    contours, _ = cv2.findContours(connected, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    for c in contours:
-        x, y, w, h = cv2.boundingRect(c)
-        # Filter noise and entire image bounds
-        if 10 < w < img_w * 0.95 and 6 < h < img_h * 0.5:
-            # Aspect ratio sanity check
-            if (w / h) > 0.5:
-                regions.append({
-                    "box_pixels": [int(x), int(y), int(w), int(h)],
-                    "area": w * h,
-                })
-
-    return regions
 
 
 def run_ocr(
@@ -91,69 +58,57 @@ def run_ocr(
     required_font_height_mm: float = 2.5
 ) -> Tuple[str, List[Dict[str, Any]]]:
     """
-    Extracts text tokens and 2D bounding boxes.
-    Returns:
-        full_text (str): Complete aggregated extracted text.
-        token_boxes (List[Dict]): List of extracted tokens with bounding boxes and measurements.
+    Runs PaddleOCR on the provided image and maps the bounding boxes 
+    to the frontend format, converting pixel height to mm.
     """
     token_boxes = []
-    full_text = ""
+    full_text_parts = []
+    
+    if image_bgr is None or image_bgr.size == 0 or not PADDLE_AVAILABLE:
+        return "", token_boxes
 
-    if image_bgr is None or image_bgr.size == 0:
-        return full_text, token_boxes
-
-    img_h, img_w = image_bgr.shape[:2]
-
-    # 1. Try pytesseract if installed and working
-    if PYTESSERACT_AVAILABLE:
-        try:
-            rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-            data = pytesseract.image_to_data(rgb, output_type=pytesseract.Output.DICT)
-            n_boxes = len(data["text"])
+    logger.info("Running PaddleOCR extraction...")
+    try:
+        # PaddleOCR predict for new versions
+        results = ocr_engine.ocr(image_bgr, cls=True)
+        
+        if not results or not results[0]:
+            return "", token_boxes
             
-            for i in range(n_boxes):
-                text = data["text"][i].strip()
-                conf = float(data["conf"][i])
-                if text and conf > 20:
-                    x = int(data["left"][i])
-                    y = int(data["top"][i])
-                    w = int(data["width"][i])
-                    h = int(data["height"][i])
-
-                    measured_h_mm = round(h / scale_factor, 2) if scale_factor > 0 else round(h * 0.1, 2)
-                    is_pass = measured_h_mm >= required_font_height_mm
-
-                    token_boxes.append({
-                        "id": f"tok_{i}",
-                        "label": "Text",
-                        "text": text,
-                        "box_pixels": [x, y, w, h],
-                        "measured_height_mm": measured_h_mm,
-                        "required_height_mm": required_font_height_mm,
-                        "status": "PASS" if is_pass else "FAIL",
-                        "confidence": round(conf / 100.0, 2),
-                    })
-
-            full_text = pytesseract.image_to_string(rgb)
-        except Exception as e:
-            print(f"Tesseract OCR fallback triggered: {e}")
-
-    # 2. If no text was extracted (or pytesseract was not available), use smart spatial CV candidate generation
-    if not token_boxes:
-        cv_regions = extract_text_regions_cv(image_bgr)
-        for i, reg in enumerate(cv_regions[:30]):
-            x, y, w, h = reg["box_pixels"]
-            measured_h_mm = round(h / scale_factor, 2) if scale_factor > 0 else 2.0
+        for idx, res in enumerate(results[0]):
+            if not res: continue
+            
+            box = res[0] # [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
+            text, conf = res[1]
+            
+            p1, p2, p3, p4 = box
+            
+            # Distance formula for rotated height (p1 to p4 is usually the short edge)
+            h_px = math.dist(p1, p4)
+            
+            xs = [p[0] for p in box]
+            ys = [p[1] for p in box]
+            x_min, x_max = min(xs), max(xs)
+            y_min, y_max = min(ys), max(ys)
+            
+            measured_h_mm = round(h_px / scale_factor, 2) if scale_factor > 0 else round(h_px * 0.1, 2)
             is_pass = measured_h_mm >= required_font_height_mm
-            token_boxes.append({
-                "id": f"cv_box_{i}",
-                "label": "Text Element",
-                "text": "",
-                "box_pixels": [x, y, w, h],
-                "measured_height_mm": measured_h_mm,
-                "required_height_mm": required_font_height_mm,
-                "status": "PASS" if is_pass else "FAIL",
-                "confidence": 0.85,
-            })
-
+            
+            if text.strip() and conf > 0.5:
+                token_boxes.append({
+                    "id": f"tok_{idx}",
+                    "label": "Text",
+                    "text": text.strip(),
+                    "box_pixels": [int(x_min), int(y_min), int(x_max - x_min), int(y_max - y_min)],
+                    "measured_height_mm": measured_h_mm,
+                    "required_height_mm": required_font_height_mm,
+                    "status": "PASS" if is_pass else "FAIL",
+                    "confidence": round(float(conf), 2)
+                })
+                full_text_parts.append(text.strip())
+                
+    except Exception as e:
+        logger.error(f"PaddleOCR processing error: {e}")
+        
+    full_text = " ".join(full_text_parts)
     return full_text, token_boxes
