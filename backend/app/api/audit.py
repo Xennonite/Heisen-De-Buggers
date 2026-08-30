@@ -26,6 +26,7 @@ async def scan_package(
     package_height_mm: float = Form(...),
     package_width_mm: float = Form(...),
     package_depth_mm: Optional[float] = Form(0.0),
+    surface_area_cm2: Optional[float] = Form(0.0),
     container_type: str = Form("rectangular"),
     category: str = Form("general"),
     custom_notes: Optional[str] = Form(None),
@@ -70,22 +71,26 @@ async def scan_package(
         rectified_img, was_rectified = auto_rectify_label(image_bgr)
         img_h, img_w = rectified_img.shape[:2]
 
-        # 3. Spatial scale factor (Only for the first image, assuming it's the PDP)
-        if idx == 0:
-            # Aspect-Ratio Orientation Swap
-            img_aspect = img_w / img_h
-            phys_aspect = package_width_mm / package_height_mm
+        # 3. Spatial scale factor (Calculate independently for each image to prevent zoom exaggeration)
+        # Check aspect ratio for orientation swap on the current image
+        img_aspect = img_w / img_h
+        phys_aspect = package_width_mm / package_height_mm
+        
+        current_package_height_mm = package_height_mm
+        current_package_width_mm = package_width_mm
+        
+        # If image is landscape but physical is portrait (or vice versa), swap dimensions for this image's math
+        if (img_aspect > 1 and phys_aspect < 1) or (img_aspect < 1 and phys_aspect > 1):
+            current_package_height_mm, current_package_width_mm = package_width_mm, package_height_mm
             
-            # If image is landscape but physical is portrait (or vice versa), swap physical dimensions
-            if (img_aspect > 1 and phys_aspect < 1) or (img_aspect < 1 and phys_aspect > 1):
-                package_width_mm, package_height_mm = package_height_mm, package_width_mm
-                
-            pdp_scale_factor = compute_scale_factor(package_height_px=img_h, package_height_mm=package_height_mm)
+        scale_factor = compute_scale_factor(package_height_px=img_h, package_height_mm=current_package_height_mm)
+        
+        # Keep track of PDP (first image) dimensions for the rules engine
+        if idx == 0:
             pdp_img_h, pdp_img_w = img_h, img_w
-            scale_factor = pdp_scale_factor
-        else:
-            # Use the PDP's scale factor for subsequent sides assuming same distance
-            scale_factor = pdp_scale_factor
+            # Permanently swap the global variables so the rules engine uses the correct orientation
+            package_height_mm = current_package_height_mm
+            package_width_mm = current_package_width_mm
 
         # 4. OCR Extraction
         extracted_text, token_boxes = run_ocr(
@@ -116,6 +121,7 @@ async def scan_package(
         package_height_mm=package_height_mm,
         package_width_mm=package_width_mm,
         package_depth_mm=package_depth_mm or 0.0,
+        surface_area_cm2=surface_area_cm2 or 0.0,
         container_type=container_type,
         category=category,
         bounding_boxes=pdp_token_boxes,

@@ -1,53 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Sparkles, Box, Cylinder, HelpCircle, Layers, Image as ImageIcon, Loader2 } from 'lucide-react';
 
-const PRESETS = [
-  {
-    id: 'biscuit_good_day',
-    name: 'Britannia Biscuit (Compliant)',
-    category: 'biscuits',
-    container_type: 'rectangular',
-    height_mm: 120,
-    width_mm: 60,
-    depth_mm: 35,
-    sampleText: 'Britannia Industries Ltd, 5/1A Hungerford Street, Kolkata - 700017\nCountry of Origin: India\nPKD: 07/2026\nFor consumer care contact 1800425444 or feedback@britannia.com\nNet Quantity: 100 g\nMRP Rs. 20.00 (incl. of all taxes)',
-    desc: 'Fully compliant standard 100g pack with required font sizes and tax tags.',
-  },
-  {
-    id: 'oil_pouch_encroach',
-    name: 'Fortune Sunlite Pouch (Rule 8 Encroachment)',
-    category: 'edible_oil',
-    container_type: 'rectangular',
-    height_mm: 220,
-    width_mm: 140,
-    depth_mm: 20,
-    sampleText: 'Adani Wilmar Ltd, Fortune House, Ahmedabad - 380009\nMade in India\nNet Qty: 1 L\nMRP Rs. 145.00 (incl. of all taxes)\nPacked: 08/2026\nCare: customercare@adaniwilmar.in',
-    desc: 'Violates Rule 8(1) with promotional text encroaching clearance boundary.',
-  },
-  {
-    id: 'shampoo_undersized',
-    name: 'Herbal Shampoo (Rule 7 Font Breach)',
-    category: 'general',
-    container_type: 'cylindrical',
-    height_mm: 180,
-    width_mm: 65,
-    depth_mm: 65,
-    sampleText: 'Herbal Care India Pvt Ltd, Mumbai - 400001\nCountry of Origin: India\nNet Vol: 200 ml\nMRP Rs. 199.00 (incl. of all taxes)\nPKD 06/2026',
-    desc: 'Cylindrical bottle with under-sized 1.2mm font on PDP area > 100 cm².',
-  },
-  {
-    id: 'deceptive_tea_pack',
-    name: 'Value Tea Pack (Rule 12 Deceptive "Approx")',
-    category: 'tea',
-    container_type: 'rectangular',
-    height_mm: 150,
-    width_mm: 90,
-    depth_mm: 50,
-    sampleText: 'Supreme Tea Blenders, Assam - 781001, India\nNet Quantity: Approx 250 g\nMRP Rs. 120.00\nPKD 05/2026',
-    desc: 'Flags prohibited qualifier "Approx" under Rule 12(6) and missing tax tag.',
-  },
-];
-
 export default function IngestionForm({ onScanSubmit, isScanning }) {
   const [files, setFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
@@ -56,7 +9,6 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
   const [depthMm, setDepthMm] = useState(40);
   const [containerType, setContainerType] = useState('rectangular');
   const [category, setCategory] = useState('biscuits');
-  const [activePreset, setActivePreset] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -66,7 +18,6 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
       setFiles(prev => [...prev, ...selectedFiles]);
       const newUrls = selectedFiles.map(f => URL.createObjectURL(f));
       setPreviewUrls(prev => [...prev, ...newUrls]);
-      setActivePreset(null);
     }
   };
   
@@ -81,69 +32,23 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
     setPreviewUrls(updatedUrls);
   };
 
-  const handlePresetSelect = (preset) => {
-    setActivePreset(preset.id);
-    setHeightMm(preset.height_mm);
-    setWidthMm(preset.width_mm);
-    setDepthMm(preset.depth_mm);
-    setContainerType(preset.container_type);
-    setCategory(preset.category);
-
-    // Create a mock canvas image for the preset
-    const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 800;
-    const ctx = canvas.getContext('2d');
-
-    // Gradient background representing package
-    const grad = ctx.createLinearGradient(0, 0, 600, 800);
-    grad.addColorStop(0, '#1e293b');
-    grad.addColorStop(1, '#0f172a');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 600, 800);
-
-    // Border
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(10, 10, 580, 780);
-
-    // Header banner
-    ctx.fillStyle = '#0284c7';
-    ctx.fillRect(20, 20, 560, 80);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(preset.name.split(' (')[0], 40, 70);
-
-    // Text content
-    ctx.fillStyle = '#f1f5f9';
-    ctx.font = '18px monospace';
-    const lines = preset.sampleText.split('\n');
-    lines.forEach((line, i) => {
-      ctx.fillText(line, 40, 160 + i * 40);
-    });
-
-    // Barcode representation
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(40, 650, 240, 80);
-    ctx.fillStyle = '#000000';
-    for (let x = 50; x < 270; x += 6) {
-      const w = (x % 12 === 0) ? 4 : 2;
-      ctx.fillRect(x, 660, w, 50);
+  const handleCategoryChange = (e) => {
+    const selectedCategory = e.target.value;
+    setCategory(selectedCategory);
+    // Auto-select geometry based on category heuristic
+    if (['aerated_drinks', 'mineral_water'].includes(selectedCategory)) {
+      setContainerType('cylindrical');
+    } else if (['baby_food', 'milk_powder', 'coffee', 'paint_varnish'].includes(selectedCategory)) {
+      setContainerType('cylindrical');
+    } else {
+      setContainerType('rectangular');
     }
-    ctx.font = '12px sans-serif';
-    ctx.fillText('8901030829412', 100, 722);
-
-    canvas.toBlob((blob) => {
-      const presetFile = new File([blob], `${preset.id}.jpg`, { type: 'image/jpeg' });
-      setFiles([presetFile]);
-      setPreviewUrls([URL.createObjectURL(presetFile)]);
-    }, 'image/jpeg');
   };
-
+  
   const handleSubmit = (e) => {
     e.preventDefault();
     if (files.length === 0) {
-      alert('Please upload at least one product label image or select a demo preset.');
+      alert('Please upload at least one product label image.');
       return;
     }
 
@@ -151,7 +56,8 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
     files.forEach(f => formData.append('files', f));
     formData.append('package_height_mm', heightMm);
     formData.append('package_width_mm', widthMm);
-    formData.append('package_depth_mm', depthMm);
+    formData.append('package_depth_mm', containerType === 'irregular' ? depthMm : 0);
+    formData.append('surface_area_cm2', containerType === 'irregular' ? depthMm : 0);
     formData.append('container_type', containerType);
     formData.append('category', category);
 
@@ -168,33 +74,6 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
         <p className="text-xs text-slate-400 mt-1">
           Upload packaged commodity imagery and enter verified physical dimensions for pixel-to-millimeter metric calibration.
         </p>
-      </div>
-
-      {/* Demo Presets Bar */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Quick-Load Demo Presets (Instant Inspection)</span>
-          </label>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => handlePresetSelect(p)}
-              className={`p-2.5 rounded-xl text-left border transition text-xs flex flex-col justify-between ${
-                activePreset === p.id
-                  ? 'bg-sky-500/10 border-sky-500/50 text-white'
-                  : 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800 text-slate-300'
-              }`}
-            >
-              <div className="font-medium text-slate-200">{p.name}</div>
-              <div className="text-[11px] text-slate-400 mt-1 line-clamp-1">{p.desc}</div>
-            </button>
-          ))}
-        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -257,6 +136,9 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
                 <div className="text-left mt-2 text-[10px] text-sky-400">
                   Ready for Computer Vision Analysis. Ensure the first image is the Principal Display Panel (Front).
                 </div>
+                <div className="text-left mt-1 text-[10px] text-rose-400 font-semibold bg-rose-500/10 border border-rose-500/20 p-2 rounded">
+                  ⚠️ STRICT RULE: Every photo uploaded MUST show the FULL height of the product (top to bottom). Do NOT upload zoomed-in macro crops of text, or the physical font size measurements will be mathematically corrupted.
+                </div>
               </div>
             ) : (
               <div className="space-y-2 pointer-events-none">
@@ -283,7 +165,7 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Height (H) mm</label>
+              <label className="text-[11px] text-slate-400 block mb-1">PDP Height (H) mm</label>
               <input
                 type="number"
                 step="1"
@@ -296,7 +178,9 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Width (W) mm</label>
+              <label className="text-[11px] text-slate-400 block mb-1">
+                {containerType === 'cylindrical' ? 'PDP Diameter (W) mm' : 'PDP Width (W) mm'}
+              </label>
               <input
                 type="number"
                 step="1"
@@ -308,40 +192,30 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
               />
             </div>
 
-            <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Depth (D) mm</label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={depthMm}
-                onChange={(e) => setDepthMm(parseFloat(e.target.value) || 0)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
-              />
-            </div>
+            {containerType === 'irregular' && (
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1">Total Surface Area (cm²)</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={depthMm}
+                  onChange={(e) => setDepthMm(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
+                  required
+                />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Container Geometry & Category */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[11px] text-slate-400 block mb-1">Container Geometry [Rule 7(4)]</label>
-            <select
-              value={containerType}
-              onChange={(e) => setContainerType(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
-            >
-              <option value="rectangular">Rectangular</option>
-              <option value="cylindrical">Cylindrical</option>
-              <option value="irregular">Irregular</option>
-            </select>
-          </div>
-
-          <div>
             <label className="text-[11px] text-slate-400 block mb-1">Commodity Category</label>
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={handleCategoryChange}
               className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
             >
               <option value="general">General Packaged Goods</option>
@@ -364,6 +238,19 @@ export default function IngestionForm({ onScanSubmit, isScanning }) {
               <option value="mineral_water">17. Mineral / Drinking water</option>
               <option value="cement">18. Cement in bags</option>
               <option value="paint_varnish">19. Paint, varnish etc.</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[11px] text-slate-400 block mb-1">Container Geometry [Rule 7(4)]</label>
+            <select
+              value={containerType}
+              onChange={(e) => setContainerType(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
+            >
+              <option value="rectangular">Rectangular</option>
+              <option value="cylindrical">Cylindrical</option>
+              <option value="irregular">Irregular</option>
             </select>
           </div>
         </div>

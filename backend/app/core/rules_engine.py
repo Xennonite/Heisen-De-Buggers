@@ -165,6 +165,7 @@ def evaluate_statutory_compliance(
     category: str = "general",
     bounding_boxes: List[Dict[str, Any]] = None,
     package_depth_mm: float = 0.0,
+    surface_area_cm2: float = 0.0,
     image_width: int = 1000,
     image_height: int = 1000,
 ) -> Dict[str, Any]:
@@ -180,6 +181,7 @@ def evaluate_statutory_compliance(
         width_mm=package_width_mm,
         container_type=container_type,
         depth_mm=package_depth_mm,
+        surface_area_cm2=surface_area_cm2,
     )
     required_font_height_mm = get_required_font_height(pdp_area_cm2)
 
