@@ -167,6 +167,7 @@ MetroVerity uses **PaddleOCR** for robust text extraction and no longer requires
 - **Git**
 - **Node.js** (v18 or higher) & **npm**
 - **Python 3.10** (Download from Python.org. **IMPORTANT:** During installation, check the box "Add Python 3.10 to PATH").
+- **Microsoft Visual C++ Redistributable** (Required for PaddleOCR C++ binaries on Windows).
 
 **1. Clone the Repository:**
 ```cmd
