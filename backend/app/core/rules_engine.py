@@ -93,7 +93,7 @@ def extract_mrp(text: str) -> Dict[str, Any]:
     
     # Fallback for standalone "RS 40/-" or OCR garbles commonly found on metallic stamped bottoms
     if not mrp_match:
-        mrp_match = re.search(r"(?:Rs\.?|₹|INR)[\s]*([0-9]{1,4}(?:\.[0-9]{1,2})?)(?:/-)?", text, re.IGNORECASE)
+        mrp_match = re.search(r"\b(?:Rs\.?|₹|INR)[\s]*([0-9]{1,4}(?:\.[0-9]{1,2})?)(?:/-)?", text, re.IGNORECASE)
     
     if not mrp_match:
         # Extreme fallback: look for number followed by "/-"
@@ -399,28 +399,60 @@ def evaluate_statutory_compliance(
         # Overwrite the surface boxes with enriched boxes
         surface["bounding_boxes"] = processed_boxes
 
-    # Rule 8 Clearance Zone check
+    # Rule 8 Clearance Zone check across all candidates
     clearance_compliant = True
     encroaching_objects = []
     clearance_box = None
-    
-    # Define font checks for violations engine later
     net_qty_font_h = required_font_height_mm
     net_qty_font_pass = True
     
-    if net_qty_box:
-        net_qty_font_h = net_qty_box["measured_height_mm"]
-        net_qty_font_pass = (net_qty_box["status"] == "PASS")
+    # Find all Net Quantity boxes across all surfaces
+    net_qty_candidates = []
+    for s_idx, surface in enumerate(surfaces):
+        for b in surface.get("bounding_boxes", []):
+            if b.get("label") == "Net Quantity":
+                net_qty_candidates.append({"box": b, "surface_idx": s_idx})
+                
+    if net_qty_candidates:
+        best_candidate = None
+        best_clearance_result = None
         
-        surface = surfaces[net_qty_surface_idx]
-        sw, sh = surface["original_dimensions"]["width"], surface["original_dimensions"]["height"]
-        clearance_compliant, encroaching_objects, clearance_box = check_clearance_encroachment(
-            net_qty_box=net_qty_box["box_pixels"],
-            all_other_boxes=surface["bounding_boxes"],
-            image_width=sw,
-            image_height=sh,
-            container_type=container_type
-        )
+        for candidate in net_qty_candidates:
+            b = candidate["box"]
+            s_idx = candidate["surface_idx"]
+            surface = surfaces[s_idx]
+            sw, sh = surface["original_dimensions"]["width"], surface["original_dimensions"]["height"]
+            
+            c_compliant, c_encroaching, c_box = check_clearance_encroachment(
+                net_qty_box=b["box_pixels"],
+                all_other_boxes=surface["bounding_boxes"],
+                image_width=sw,
+                image_height=sh,
+                container_type=container_type
+            )
+            
+            if c_compliant and b["status"] == "PASS":
+                best_candidate = candidate
+                best_clearance_result = (c_compliant, c_encroaching, c_box)
+                break # Found a perfectly compliant one!
+                
+        if not best_candidate:
+            # Fallback to the one with the highest font size if none are perfectly compliant
+            best_candidate = max(net_qty_candidates, key=lambda c: c["box"].get("measured_height_mm", 0))
+            b = best_candidate["box"]
+            surface = surfaces[best_candidate["surface_idx"]]
+            sw, sh = surface["original_dimensions"]["width"], surface["original_dimensions"]["height"]
+            best_clearance_result = check_clearance_encroachment(
+                net_qty_box=b["box_pixels"],
+                all_other_boxes=surface["bounding_boxes"],
+                image_width=sw,
+                image_height=sh,
+                container_type=container_type
+            )
+            
+        net_qty_font_h = best_candidate["box"]["measured_height_mm"]
+        net_qty_font_pass = (best_candidate["box"]["status"] == "PASS")
+        clearance_compliant, encroaching_objects, clearance_box = best_clearance_result
 
     # 4. Violations & Compounding Fee Assessment (Rule 32A)
     violations = []

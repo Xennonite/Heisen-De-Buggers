@@ -1,0 +1,5 @@
+with open("/home/binaryraptor/.gemini/antigravity-cli/brain/79c89651-feef-4c14-8a7f-55389f53161f/walkthrough.md", "a") as f:
+    f.write("- **Fixed Circular Face Detection:** Relaxed the circular aspect ratio threshold from `0.85-1.15` to `0.7-1.4` because perspective distortion and background noise on user photos often result in ovals. This ensures the bottom of the can correctly triggers metallic preprocessing.\n")
+    f.write("- **Fixed Dot Matrix OCR at High Resolutions:** Added an auto-downscale pass inside `run_ocr` specifically for metallic surfaces. High-resolution images previously caused PaddleOCR to fail because the individual dots in dot-matrix text were too far apart to be recognized as strokes. Downscaling to 600px merges the dots, and coordinates are inversely mapped back to the original image for accurate bounding box rendering.\n")
+    f.write("- **Fixed MRP Hallucination (10.6):** Added a word boundary `\\b` to the MRP fallback regex. Previously, it incorrectly matched the substring 'RS' at the end of the word 'SUGARS' on the side of the can ('TOTAL SUGARS 10.6g'), resulting in the hallucinated '10.6' price.\n")
+

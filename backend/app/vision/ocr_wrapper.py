@@ -127,17 +127,13 @@ def _compute_iou(box_a: list, box_b: list) -> float:
     return inter / union if union > 0 else 0.0
 
 
+
 def run_ocr(
     image_bgr: np.ndarray,
     scale_factor: float = 1.0,
     required_font_height_mm: float = 2.5,
     is_metallic_surface: bool = False
 ) -> Tuple[str, List[Dict[str, Any]]]:
-    """
-    Runs PaddleOCR on the provided image. If is_metallic_surface is True,
-    runs a dual-pass strategy: standard + aggressively preprocessed metallic pass,
-    then merges results with IoU-based deduplication.
-    """
     if not PADDLE_AVAILABLE:
         return "OCR Engine Offline", []
 
@@ -150,40 +146,61 @@ def run_ocr(
     if not is_metallic_surface:
         full_text = " ".join(text_parts_1)
         return full_text, boxes_1
+        
+    # For metallic surfaces (dot matrix), high-res images cause OCR to fail because the dots are too sparse.
+    # Downscale the image if it's too large so dots merge into solid strokes.
+    h, w = image_bgr.shape[:2]
+    max_dim = max(h, w)
+    resize_ratio = 1.0
+    if max_dim > 600:
+        resize_ratio = 600.0 / max_dim
+        metallic_bgr = cv2.resize(image_bgr, (0,0), fx=resize_ratio, fy=resize_ratio)
+    else:
+        metallic_bgr = image_bgr.copy()
+        
+    # Pass 2: Metallic surface OCR
+    metallic_img = enhance_metallic_surface(metallic_bgr)
+    text_parts_2, boxes_2 = _ocr_single_pass(metallic_img, scale_factor * resize_ratio, required_font_height_mm, "met")
     
-    # Pass 2: Metallic surface OCR (morph close + sharpen)
-    metallic_img = enhance_metallic_surface(image_bgr)
-    text_parts_2, boxes_2 = _ocr_single_pass(metallic_img, scale_factor, required_font_height_mm, "met")
-    
-    # Pass 3: Inverted grayscale OCR (CLAHE + invert — best for high-contrast stamped text)
-    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+    # Pass 3: Inverted grayscale OCR
+    gray = cv2.cvtColor(metallic_bgr, cv2.COLOR_BGR2GRAY)
     clahe = cv2.createCLAHE(clipLimit=6.0, tileGridSize=(4, 4))
     enhanced_gray = clahe.apply(gray)
     inverted = cv2.bitwise_not(enhanced_gray)
     inverted_bgr = cv2.cvtColor(inverted, cv2.COLOR_GRAY2BGR)
-    text_parts_3, boxes_3 = _ocr_single_pass(inverted_bgr, scale_factor, required_font_height_mm, "inv")
+    text_parts_3, boxes_3 = _ocr_single_pass(inverted_bgr, scale_factor * resize_ratio, required_font_height_mm, "inv")
     
-    # Merge all passes: start with Pass 1, merge Pass 2 and Pass 3
+    # Scale boxes back up to original image space
+    if resize_ratio != 1.0:
+        for extra_boxes in [boxes_2, boxes_3]:
+            for b in extra_boxes:
+                b["box_pixels"] = [int(v / resize_ratio) for v in b["box_pixels"]]
+                
+    # Merge all passes
     merged_boxes = list(boxes_1)
     merged_text_parts = list(text_parts_1)
     
     for extra_boxes in [boxes_2, boxes_3]:
-        for b2 in extra_boxes:
-            is_duplicate = False
-            for b1 in merged_boxes:
-                iou = _compute_iou(b1["box_pixels"], b2["box_pixels"])
-                if iou > 0.3:
-                    # Overlapping detection — keep whichever has higher confidence
-                    if b2["confidence"] > b1["confidence"]:
-                        idx_1 = merged_boxes.index(b1)
-                        merged_boxes[idx_1] = b2
-                    is_duplicate = True
-                    break
+        for b in extra_boxes:
+            b_poly = Polygon(b["box_pixels"]) if len(b["box_pixels"]) == 8 else None
             
-            if not is_duplicate:
-                merged_boxes.append(b2)
-    
-    full_text = " ".join([b["text"] for b in merged_boxes])
-    return full_text, merged_boxes
-
+            overlap = False
+            for mb in merged_boxes:
+                mb_poly = Polygon(mb["box_pixels"]) if len(mb["box_pixels"]) == 8 else None
+                if b_poly and mb_poly and b_poly.intersects(mb_poly):
+                    iou = b_poly.intersection(mb_poly).area / b_poly.union(mb_poly).area
+                    if iou > 0.3:
+                        overlap = True
+                        if b["confidence"] > mb["confidence"]:
+                            mb["text"] = b["text"]
+                            mb["confidence"] = b["confidence"]
+                            mb["box_pixels"] = b["box_pixels"]
+                        break
+            if not overlap:
+                merged_boxes.append(b)
+                merged_text_parts.append(b["text"])
+                
+    # Generate combined text from the final merged boxes
+    final_text = " ".join([b["text"] for b in merged_boxes])
+    return final_text, merged_boxes
 
