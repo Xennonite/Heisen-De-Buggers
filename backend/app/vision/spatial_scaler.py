@@ -9,6 +9,7 @@ def calculate_pdp_area(
     depth_mm: float = 0.0,
     diameter_mm: float = 0.0,
     circumference_mm: float = 0.0,
+    surface_area_cm2: float = 0.0,
 ) -> float:
     """
     Calculates the Principal Display Panel (PDP) Surface Area (A) in cm²
@@ -33,7 +34,10 @@ def calculate_pdp_area(
     elif container_type == "irregular":
         # Rule 7(4)(c): Irregular or other shapes:
         # A = 40% of Total Package Surface Area
-        # Total surface area approximation: 2*(H*W + W*D + H*D)
+        if surface_area_cm2 > 0:
+            return round(0.40 * surface_area_cm2, 2)
+            
+        # Fallback approximation: 2*(H*W + W*D + H*D)
         d = depth_mm if depth_mm > 0 else width_mm * 0.5
         total_surface_mm2 = 2.0 * (height_mm * width_mm + width_mm * d + height_mm * d)
         area_mm2 = 0.40 * total_surface_mm2
