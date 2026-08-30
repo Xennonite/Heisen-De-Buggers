@@ -5,6 +5,7 @@ from PIL import Image
 from typing import List, Dict, Any, Tuple, Optional
 import math
 import logging
+from app.vision.preprocessor import enhance_text_contrast
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,13 @@ except Exception:
 try:
     from paddleocr import PaddleOCR
     # Initialize PaddleOCR globally to avoid loading weights on every request
-    ocr_engine = PaddleOCR(use_angle_cls=True, lang='en')
+    ocr_engine = PaddleOCR(
+        use_angle_cls=True, 
+        lang='en',
+        det_limit_side_len=2560,
+        det_db_thresh=0.3,
+        det_db_unclip_ratio=1.6
+    )
     PADDLE_AVAILABLE = True
 except Exception as e:
     logger.error(f"Failed to load PaddleOCR: {e}")
@@ -63,9 +70,9 @@ def run_ocr(
     """
     token_boxes = []
     full_text_parts = []
-    
-    if image_bgr is None or image_bgr.size == 0 or not PADDLE_AVAILABLE:
-        return "", token_boxes
+
+    if not PADDLE_AVAILABLE:
+        return "OCR Engine Offline", []
 
     logger.info("Running PaddleOCR extraction...")
     try:
