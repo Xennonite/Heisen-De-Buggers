@@ -93,7 +93,7 @@ async def scan_package(
         is_circular_face = False
         if container_type == "cylindrical" and true_product_h > 0:
             product_aspect = true_product_w / true_product_h
-            if 0.85 <= product_aspect <= 1.15:
+            if 0.7 <= product_aspect <= 1.4:
                 is_circular_face = True
                 # The height of the product in pixels represents the diameter, not the cylinder height
                 current_package_height_mm = current_package_width_mm

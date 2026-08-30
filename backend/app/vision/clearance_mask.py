@@ -20,9 +20,10 @@ def compute_rule8_clearance_box(
     horizontal_dist = 1.0 * h if container_type == 'cylindrical' else 2.0 * h
     
     cx = max(0, int(x - horizontal_dist))
-    cy = max(0, int(y - 1.0 * h))
+    vertical_dist = 0.5 * h if container_type == 'cylindrical' else 1.0 * h
+    cy = max(0, int(y - vertical_dist))
     cw = min(image_width - cx, int(w + 2 * horizontal_dist))
-    ch = min(image_height - cy, int(h + 2.0 * h))
+    ch = min(image_height - cy, int(h + 2.0 * vertical_dist))
     return [cx, cy, cw, ch]
 
 
