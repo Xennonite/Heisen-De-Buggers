@@ -12,7 +12,7 @@ from app.core.config import UPLOAD_DIR
 from app.storage.database import get_sync_db
 from app.storage.models import ScanRecord
 from app.models.schemas import ScanResponse, RuleChecklist
-from app.vision.preprocessor import load_image_with_exif, auto_rectify_label, get_product_pixel_height
+from app.vision.preprocessor import load_image_with_exif, auto_rectify_label, get_product_pixel_height, get_product_pixel_bounds
 from app.vision.spatial_scaler import compute_scale_factor
 from app.vision.ocr_wrapper import run_ocr, decode_barcodes
 from app.core.rules_engine import evaluate_statutory_compliance
@@ -68,11 +68,11 @@ async def scan_package(
         if image_bgr is None:
             continue
 
-        rectified_img, was_rectified = auto_rectify_label(image_bgr)
+        rectified_img = image_bgr
         img_h, img_w = rectified_img.shape[:2]
         
-        # Get true product pixel height (ignoring solid white backgrounds) for scaling math
-        true_product_h = get_product_pixel_height(rectified_img)
+        # Get true product pixel height AND width (ignoring solid white backgrounds) for scaling math
+        true_product_h, true_product_w = get_product_pixel_bounds(rectified_img)
 
         # 3. Spatial scale factor (Calculate independently for each image to prevent zoom exaggeration)
         # Check aspect ratio for orientation swap on the current image
@@ -85,6 +85,18 @@ async def scan_package(
         # If image is landscape but physical is portrait (or vice versa), swap dimensions for this image's math
         if (img_aspect > 1 and phys_aspect < 1) or (img_aspect < 1 and phys_aspect > 1):
             current_package_height_mm, current_package_width_mm = package_width_mm, package_height_mm
+
+        # Cylindrical Circular Face Detection:
+        # If the container is cylindrical, check if this image shows the circular top/bottom.
+        # A circular face has a product pixel aspect ratio close to 1.0 (it's a circle).
+        # In that case, the pixel height maps to the DIAMETER (width_mm), not the height.
+        is_circular_face = False
+        if container_type == "cylindrical" and true_product_h > 0:
+            product_aspect = true_product_w / true_product_h
+            if 0.85 <= product_aspect <= 1.15:
+                is_circular_face = True
+                # The height of the product in pixels represents the diameter, not the cylinder height
+                current_package_height_mm = current_package_width_mm
             
         # Compute scale factor using the true product height, NOT the total image height
         scale_factor = compute_scale_factor(package_height_px=true_product_h, package_height_mm=current_package_height_mm)
@@ -96,11 +108,12 @@ async def scan_package(
             package_height_mm = current_package_height_mm
             package_width_mm = current_package_width_mm
 
-        # 4. OCR Extraction
+        # 4. OCR Extraction (enable metallic preprocessing for circular faces like can bottoms)
         extracted_text, token_boxes = run_ocr(
             image_bgr=rectified_img,
             scale_factor=scale_factor,
             required_font_height_mm=2.5,
+            is_metallic_surface=is_circular_face,
         )
         
         combined_extracted_text += f" {extracted_text}"
@@ -119,7 +132,7 @@ async def scan_package(
     if not surfaces:
         raise HTTPException(status_code=400, detail="Failed to process uploaded images.")
 
-    # 5. Evaluate Statutory Compliance Engine using combined text, but PDP spatial boxes
+    # 5. Evaluate Statutory Compliance Engine using combined text and all surfaces
     audit_results = evaluate_statutory_compliance(
         extracted_text=combined_extracted_text,
         package_height_mm=package_height_mm,
@@ -128,13 +141,10 @@ async def scan_package(
         surface_area_cm2=surface_area_cm2 or 0.0,
         container_type=container_type,
         category=category,
-        bounding_boxes=pdp_token_boxes,
-        image_width=pdp_img_w,
-        image_height=pdp_img_h,
+        surfaces=surfaces,
+        pdp_image_width=pdp_img_w,
+        pdp_image_height=pdp_img_h,
     )
-    
-    # Overwrite the PDP bounding boxes in surfaces[0] with the enriched boxes from the audit engine
-    surfaces[0]["bounding_boxes"] = audit_results["bounding_boxes"]
 
     # 6. Construct Response
     response_data = {

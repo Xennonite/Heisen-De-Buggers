@@ -15,11 +15,11 @@ def load_image_with_exif(image_path: str) -> np.ndarray:
     return cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR)
 
 
-def get_product_pixel_height(image: np.ndarray) -> int:
+def get_product_pixel_bounds(image: np.ndarray) -> tuple:
     """
-    Analyzes the image to find the true pixel height of the object,
+    Analyzes the image to find the true pixel height AND width of the object,
     ignoring solid white (or near-white) backgrounds common in e-commerce renders.
-    Returns the pixel height of the object. If detection fails, returns the full image height.
+    Returns (height, width) of the object. If detection fails, returns (full_image_h, full_image_w).
     """
     img_h, img_w = image.shape[:2]
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -29,14 +29,22 @@ def get_product_pixel_height(image: np.ndarray) -> int:
     
     coords = cv2.findNonZero(thresh)
     if coords is None:
-        return img_h
+        return (img_h, img_w)
         
     x, y, w, h = cv2.boundingRect(coords)
     
     # Ignore if it thinks the object is tiny (e.g. less than 10% of image height)
     if h < (img_h * 0.1):
-        return img_h
+        return (img_h, img_w)
         
+    return (h, w)
+
+
+def get_product_pixel_height(image: np.ndarray) -> int:
+    """
+    Backwards-compatible wrapper. Returns just the pixel height.
+    """
+    h, w = get_product_pixel_bounds(image)
     return h
 import cv2
 import numpy as np
@@ -55,6 +63,31 @@ def enhance_text_contrast(image: np.ndarray) -> np.ndarray:
     limg = cv2.merge((cl, a, b))
     enhanced_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
     return enhanced_img
+
+
+def enhance_metallic_surface(image: np.ndarray) -> np.ndarray:
+    """
+    Aggressive preprocessing for dot-matrix stamped text on metallic/aluminum surfaces.
+    Pipeline: Grayscale → Aggressive CLAHE → Morphological Close → Unsharp Mask → BGR
+    """
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # 1. Aggressive CLAHE (clipLimit=6.0) to boost faint stamped text
+    clahe = cv2.createCLAHE(clipLimit=6.0, tileGridSize=(4, 4))
+    enhanced = clahe.apply(gray)
+    
+    # 2. Morphological closing to thicken thin dot-matrix strokes
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    closed = cv2.morphologyEx(enhanced, cv2.MORPH_CLOSE, kernel)
+    
+    # 3. Unsharp mask to sharpen character edges
+    blurred = cv2.GaussianBlur(closed, (0, 0), 2)
+    sharpened = cv2.addWeighted(closed, 1.5, blurred, -0.5, 0)
+    
+    # 4. Convert back to 3-channel BGR for PaddleOCR compatibility
+    return cv2.cvtColor(sharpened, cv2.COLOR_GRAY2BGR)
+
+
 def order_points(pts: np.ndarray) -> np.ndarray:
     """
     Orders 4 coordinates as: top-left, top-right, bottom-right, bottom-left.
