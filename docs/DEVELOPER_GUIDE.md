@@ -69,9 +69,9 @@ Implemented in: [`backend/app/vision/spatial_scaler.py`](file:///home/binaryrapt
 ### D. Net Quantity Clearance Buffer Geometry [Rule 8(1)]
 Given the bounding box of the Net Quantity declaration $[x, y, w, h]$:
 - **Vertical Clearance (Top/Bottom):** Free space $\ge 1.0 \times h$
-- **Horizontal Clearance (Left/Right):** Free space $\ge 2.0 \times h$
+- **Horizontal Clearance (Left/Right):** Free space $\ge 1.0 \times h$ (Reduced from 2.0x for visual clarity)
 - **Clearance Polygon Boundary:**
-  $$\text{Clearance Bounding Box} = [x - 2h, \; y - h, \; w + 4h, \; h + 2h]$$
+  $$\text{Clearance Bounding Box} = [x - h, \; y - h, \; w + 2h, \; h + 2h]$$
 - **Collision Condition:** Evaluated via Axis-Aligned Bounding Box (AABB) intersection against all other text tokens on the surface.
 
 Implemented in: [`backend/app/vision/clearance_mask.py`](file:///home/binaryraptor/Projects/Heisen-De-Buggers/backend/app/vision/clearance_mask.py#L4-L78)
@@ -129,7 +129,7 @@ Implemented in: [`backend/app/core/rules_engine.py`](file:///home/binaryraptor/P
 ### 2. `app/vision/ocr_wrapper.py`
 - `decode_barcodes(image_bgr)`: Uses `pyzbar` to decode 1D/2D barcodes (EAN-13, UPC-A, Code128, QR) and validates GTIN length.
 - `extract_text_regions_cv(image_bgr)`: Morphological gradient and Otsu thresholding to extract candidate text bounding boxes.
-- `run_ocr(image_bgr, scale_factor, required_font_height_mm)`: Extracts text tokens, computes bounding box heights in millimeters, and flags font compliance.
+- `run_ocr(image_bgr, scale_factor, required_font_height_mm, is_metallic_surface)`: Uses **PaddleOCR** to extract text tokens. Features an automatic downscaling pipeline (`max_dim=600px`) for metallic surfaces to fuse disconnected dot-matrix text on high-res images, before inversely scaling bounding boxes.
 
 ### 3. `app/core/rules_engine.py`
 - `extract_pin_code(text)`: Regex matching 6-digit Indian PIN codes (`\b[1-9][0-9]{5}\b`).
@@ -185,7 +185,7 @@ In [`VisualOverlay.jsx`](file:///home/binaryraptor/Projects/Heisen-De-Buggers/fr
 
 ### 1. `POST /api/v1/audit/scan`
 **Request (multipart/form-data):**
-- `file`: Image file (`.jpg`, `.png`)
+- `files`: Array of image files (`.jpg`, `.png`) for multi-surface scanning
 - `package_height_mm`: float (e.g. `150.0`)
 - `package_width_mm`: float (e.g. `80.0`)
 - `package_depth_mm`: float (optional, e.g. `30.0`)
@@ -219,11 +219,18 @@ In [`VisualOverlay.jsx`](file:///home/binaryraptor/Projects/Heisen-De-Buggers/fr
   "declarations": { ... },
   "net_quantity": { ... },
   "mrp": { ... },
-  "clearance_zone": { ... },
   "deceptive_terms": { ... },
   "violations": [ ... ],
-  "bounding_boxes": [ ... ],
-  "barcodes": [ ... ]
+  "surfaces": [
+    {
+      "surface_id": 0,
+      "image_filename": "front.jpg",
+      "pdp_area_cm2": 120.0,
+      "bounding_boxes": [ ... ],
+      "barcodes": [ ... ],
+      "clearance_zone": { ... }
+    }
+  ]
 }
 ```
 
