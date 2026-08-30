@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Tuple
 
 
 def compute_rule8_clearance_box(
-    box: List[int], image_width: int = 10000, image_height: int = 10000
+    box: List[int], image_width: int = 10000, image_height: int = 10000, container_type: str = 'rectangular'
 ) -> List[int]:
     """
     Computes statutory Rule 8(1) Net Quantity clearance zone:
@@ -17,7 +17,7 @@ def compute_rule8_clearance_box(
     # Apply a 25% tolerance reduction (0.75 multiplier) to horizontal clearance to account 
     # for 3D-to-2D perspective distortion (foreshortening) on cylindrical/irregular packages.
     # Original horizontal requirement: 2.0 * h. Adjusted: 2.0 * h * 0.75 = 1.5 * h
-    horizontal_dist = 1.5 * h
+    horizontal_dist = 1.0 * h if container_type == 'cylindrical' else 2.0 * h
     
     cx = max(0, int(x - horizontal_dist))
     cy = max(0, int(y - 1.0 * h))
@@ -52,6 +52,7 @@ def check_clearance_encroachment(
     all_other_boxes: List[Dict[str, Any]],
     image_width: int = 10000,
     image_height: int = 10000,
+    container_type: str = 'rectangular'
 ) -> Tuple[bool, List[str], List[int]]:
     """
     Verifies Rule 8(1) compliance: No other text bounding box or graphic element
@@ -64,7 +65,7 @@ def check_clearance_encroachment(
     if not net_qty_box or len(net_qty_box) < 4:
         return True, [], []
 
-    clearance_box = compute_rule8_clearance_box(net_qty_box, image_width, image_height)
+    clearance_box = compute_rule8_clearance_box(net_qty_box, image_width, image_height, container_type)
     encroaching_objects = []
 
     # Net quantity's own box coordinate bounds
