@@ -10,14 +10,16 @@ def compute_rule8_clearance_box(
     - Top/Bottom Vertical Clearance >= 1.0 * h
     - Left/Right Horizontal Clearance >= 2.0 * h
     Clearance Box = [x - 2h, y - h, w + 4h, h + 2h]
+    - Left/Right Horizontal Clearance >= 1.0 * h
+    Clearance Box = [x - h, y - h, w + 2h, h + 2h]
     Clamped to image boundary [0, 0, image_width, image_height].
     """
     x, y, w, h = box
     
     # Apply a 25% tolerance reduction (0.75 multiplier) to horizontal clearance to account 
     # for 3D-to-2D perspective distortion (foreshortening) on cylindrical/irregular packages.
-    # Original horizontal requirement: 2.0 * h. Adjusted: 2.0 * h * 0.75 = 1.5 * h
-    horizontal_dist = 1.0 * h if container_type == 'cylindrical' else 2.0 * h
+    # General packages: 1x height horizontal, 1x height vertical
+    horizontal_dist = 1.0 * h if container_type == "cylindrical" else 1.0 * h
     
     cx = max(0, int(x - horizontal_dist))
     vertical_dist = 0.5 * h if container_type == 'cylindrical' else 1.0 * h

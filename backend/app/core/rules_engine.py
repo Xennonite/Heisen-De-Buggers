@@ -356,7 +356,7 @@ def evaluate_statutory_compliance(
                 label = "Net Quantity"
             elif re.search(r"\b(mrp|rs\.?|price)\b", text.lower()) or "₹" in text or "/-" in text or re.search(r"(?:eap|eaf|ea)[\w\/\s]+(?:400|404|40\b)", text.lower()):
                 label = "MRP Declaration"
-            elif re.search(r"(?:mfd|mfg|mfu|exp|eap|eaf|ea|batch|bn\b|use by|expiry)", text.lower()) or re.search(r"\d{2}[\/\-\.]?\d{2}[\/\-\.]?\d{2}", text):
+            elif re.search(r"\b(mfd|mfg|mfu|exp|batch|bn|use by|expiry|date|pkd)\b", text.lower()) or re.search(r"\b\d{2}[\/\-\.]\d{2}[\/\-\.]\d{2,4}\b", text):
                 label = "Date & Batch"
 
             # Apply a 5% computer vision tolerance margin (e.g., 3.8mm passes a 4.0mm requirement)

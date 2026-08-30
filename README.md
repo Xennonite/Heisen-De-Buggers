@@ -58,7 +58,7 @@ The system pairs computer vision, spatial document analysis, deterministic metri
 | :--- | :--- | :--- |
 | **Frontend** | React 18, Vite 5, TailwindCSS, Lucide Icons, Axios | Responsive inspector dashboard, interactive SVG visual canvas, live MPE modal, export controls |
 | **Backend** | Python 3.12, FastAPI, Pydantic v2, Uvicorn | High-performance RESTful API and asynchronous CV processing |
-| **Computer Vision** | OpenCV (`opencv-python-headless`), NumPy, Pillow, Pyzbar | Metric scaling, perspective transform, clearance mask collision, barcode decoding |
+| **Computer Vision** | PaddleOCR, OpenCV (`opencv-python-headless`), NumPy, Pillow, Pyzbar | Metric scaling, perspective transform, clearance mask collision, barcode decoding |
 | **Rule & NLP Engine** | Python Regex & Heuristics | Statutory LMPC 2011 rule parsing, scoring deduction algorithm, compounding fee calculator |
 | **Reports & Documents** | ReportLab, python-docx, CSV | Seventh Schedule Form A notice and multi-format inspection report generation |
 | **Persistence** | SQLite, SQLAlchemy, aiosqlite | Inspection history repository and scan audit logging |
@@ -83,7 +83,7 @@ Heisen-De-Buggers/
 │   │   │   ├── preprocessor.py   # OpenCV perspective rectification & unwarping
 │   │   │   ├── spatial_scaler.py # Metric scale ratio px/mm, PDP area calculation
 │   │   │   ├── clearance_mask.py # Rule 8(1) clearance polygon collision logic
-│   │   │   └── ocr_wrapper.py    # Hybrid OCR, barcode decoding, token spatial mapping
+│   │   │   └── ocr_wrapper.py    # PaddleOCR multi-surface text extraction, barcode decoding, token spatial mapping
 │   │   ├── models/
 │   │   │   └── schemas.py        # Pydantic request/response data contracts
 │   │   ├── storage/
@@ -126,7 +126,7 @@ Heisen-De-Buggers/
 ## ⚡ Quick Start Guide
 
 ### Prerequisites
-- Python 3.10+ (Python 3.12 recommended, managed via `uv`)
+- Python 3.10 (Specifically required for PaddleOCR compatibility, managed via `uv` or `venv`)
 - Node.js 18+ & npm
 - `libzbar0` and OpenGL libraries (pre-installed on Linux/Debian)
 
@@ -134,7 +134,7 @@ Heisen-De-Buggers/
 ```bash
 # From repository root:
 # 1. Create Python virtual environment using uv or venv
-uv venv --python 3.12 backend/.venv
+uv venv --python 3.10 backend/.venv
 
 # 2. Install backend dependencies
 uv pip install -r backend/requirements.txt --python backend/.venv
