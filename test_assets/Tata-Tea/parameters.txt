@@ -1,0 +1,4 @@
+Container Geometry: Rectangular
+Commodity Category: 14. Tea
+PDP Height (h): 210 mm
+PDP Width (w): 410 mm

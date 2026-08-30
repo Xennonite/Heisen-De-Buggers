@@ -1,0 +1,4 @@
+Container Geometry: Cylindrical
+Commodity Category: 16. Aerated soft drinks, Non-Alcoholic beverages
+PDP Height (h): 140 mm
+PDP Diameter (w): 106 mm

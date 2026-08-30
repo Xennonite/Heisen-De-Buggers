@@ -263,3 +263,8 @@ To introduce a new Legal Metrology compliance rule to MetroVerity:
 4. **Update Scoring Weights:** Adjust deduction points in `compute_compliance_score`.
 5. **Add Frontend Checklist Card:** Include the rule title, description, and status in [`frontend/src/components/ComplianceChecklist.jsx`](file:///home/binaryraptor/Projects/Heisen-De-Buggers/frontend/src/components/ComplianceChecklist.jsx).
 6. **Add Unit Tests:** Write corresponding test cases in `backend/tests/test_rules.py`.
+
+
+## Utility Scripts
+### `clear_history.py`
+Located in `scripts/clear_history.py`, this Python script provides a cross-platform method for truncating the SQLite `scan_records` table and wiping the `backend/uploads/` directory. Use this during testing to quickly reset the application state without needing to manually recreate the database schema or restart the uvicorn server.

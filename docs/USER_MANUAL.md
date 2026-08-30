@@ -229,3 +229,12 @@ npm run dev
 
 ### 4.3 Usage
 Once both the backend and frontend servers are running, you can interact with the MetroVerity dashboard, upload product images, and run statutory compliance inspections locally.
+
+
+## Resetting Inspection History
+If you wish to completely wipe the current inspection history and start fresh, the system provides a cross-platform utility script. 
+Open your terminal in the root directory of the project and run:
+```bash
+python scripts/clear_history.py
+```
+This will instantly clear the database records and purge the uploaded imagery. Refresh your browser to see the empty inspection log.
