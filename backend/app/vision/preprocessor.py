@@ -15,6 +15,46 @@ def load_image_with_exif(image_path: str) -> np.ndarray:
     return cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR)
 
 
+def get_product_pixel_height(image: np.ndarray) -> int:
+    """
+    Analyzes the image to find the true pixel height of the object,
+    ignoring solid white (or near-white) backgrounds common in e-commerce renders.
+    Returns the pixel height of the object. If detection fails, returns the full image height.
+    """
+    img_h, img_w = image.shape[:2]
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Threshold: Object becomes white (255), background (if >240) becomes black (0)
+    _, thresh = cv2.threshold(gray, 240, 255, cv2.THRESH_BINARY_INV)
+    
+    coords = cv2.findNonZero(thresh)
+    if coords is None:
+        return img_h
+        
+    x, y, w, h = cv2.boundingRect(coords)
+    
+    # Ignore if it thinks the object is tiny (e.g. less than 10% of image height)
+    if h < (img_h * 0.1):
+        return img_h
+        
+    return h
+import cv2
+import numpy as np
+
+def enhance_text_contrast(image: np.ndarray) -> np.ndarray:
+    """
+    Enhances contrast of the image to help PaddleOCR detect faint or low-contrast text.
+    Uses CLAHE on the luminance channel.
+    """
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    l_channel, a, b = cv2.split(lab)
+    
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    cl = clahe.apply(l_channel)
+    
+    limg = cv2.merge((cl, a, b))
+    enhanced_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+    return enhanced_img
 def order_points(pts: np.ndarray) -> np.ndarray:
     """
     Orders 4 coordinates as: top-left, top-right, bottom-right, bottom-left.

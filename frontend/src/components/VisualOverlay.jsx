@@ -183,8 +183,9 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
             {showBoxes && bounding_boxes.map((b, idx) => {
               const [bx, by, bw, bh] = b.box_pixels;
               const isPass = b.status === 'PASS';
-              const strokeColor = isPass ? '#22c55e' : '#ef4444';
-              const fillColor = isPass ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.22)';
+              const isInfo = b.status === 'INFO';
+              const strokeColor = isInfo ? '#eab308' : (isPass ? '#22c55e' : '#ef4444'); // eab308 is Tailwind yellow-500
+              const fillColor = isInfo ? 'rgba(234, 179, 8, 0.15)' : (isPass ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.22)');
 
               return (
                 <g key={b.id || idx} className="pointer-events-auto cursor-pointer group" onClick={() => setSelectedBox(b)}>
@@ -221,6 +222,22 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
               );
             })}
           </svg>
+        </div>
+
+        {/* Legend */}
+        <div className="absolute bottom-4 right-4 z-20 bg-slate-900/90 backdrop-blur border border-slate-700/50 rounded-lg p-2.5 shadow-xl flex flex-col space-y-1.5 pointer-events-none">
+          <div className="flex items-center space-x-2">
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500/20 border border-green-500"></div>
+            <span className="text-[10px] text-slate-300 font-medium">Mandatory (Pass)</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-2.5 h-2.5 rounded-sm bg-red-500/20 border border-red-500"></div>
+            <span className="text-[10px] text-slate-300 font-medium">Mandatory (Fail)</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-2.5 h-2.5 rounded-sm bg-yellow-500/20 border border-yellow-500"></div>
+            <span className="text-[10px] text-slate-300 font-medium">Generic Text (No Req)</span>
+          </div>
         </div>
       </div>
 

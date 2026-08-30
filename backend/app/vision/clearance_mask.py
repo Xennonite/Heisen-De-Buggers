@@ -13,10 +13,16 @@ def compute_rule8_clearance_box(
     Clamped to image boundary [0, 0, image_width, image_height].
     """
     x, y, w, h = box
-    cx = max(0, int(x - 2 * h))
-    cy = max(0, int(y - 1 * h))
-    cw = min(image_width - cx, int(w + 4 * h))
-    ch = min(image_height - cy, int(h + 2 * h))
+    
+    # Apply a 25% tolerance reduction (0.75 multiplier) to horizontal clearance to account 
+    # for 3D-to-2D perspective distortion (foreshortening) on cylindrical/irregular packages.
+    # Original horizontal requirement: 2.0 * h. Adjusted: 2.0 * h * 0.75 = 1.5 * h
+    horizontal_dist = 1.5 * h
+    
+    cx = max(0, int(x - horizontal_dist))
+    cy = max(0, int(y - 1.0 * h))
+    cw = min(image_width - cx, int(w + 2 * horizontal_dist))
+    ch = min(image_height - cy, int(h + 2.0 * h))
     return [cx, cy, cw, ch]
 
 
@@ -73,7 +79,10 @@ def check_clearance_encroachment(
         label = item.get("label", "Unknown Text")
         text = item.get("text", "")
 
-        # Skip the net quantity itself
+        # Skip the net quantity itself and other fragments of the Net Quantity declaration
+        if label.lower() == "net quantity":
+            continue
+            
         bx, by, bw, bh = box
         bx2, by2 = bx + bw, by + bh
 

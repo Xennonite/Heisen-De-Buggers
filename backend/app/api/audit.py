@@ -12,7 +12,7 @@ from app.core.config import UPLOAD_DIR
 from app.storage.database import get_sync_db
 from app.storage.models import ScanRecord
 from app.models.schemas import ScanResponse, RuleChecklist
-from app.vision.preprocessor import load_image_with_exif, auto_rectify_label
+from app.vision.preprocessor import load_image_with_exif, auto_rectify_label, get_product_pixel_height
 from app.vision.spatial_scaler import compute_scale_factor
 from app.vision.ocr_wrapper import run_ocr, decode_barcodes
 from app.core.rules_engine import evaluate_statutory_compliance
@@ -70,6 +70,9 @@ async def scan_package(
 
         rectified_img, was_rectified = auto_rectify_label(image_bgr)
         img_h, img_w = rectified_img.shape[:2]
+        
+        # Get true product pixel height (ignoring solid white backgrounds) for scaling math
+        true_product_h = get_product_pixel_height(rectified_img)
 
         # 3. Spatial scale factor (Calculate independently for each image to prevent zoom exaggeration)
         # Check aspect ratio for orientation swap on the current image
@@ -83,7 +86,8 @@ async def scan_package(
         if (img_aspect > 1 and phys_aspect < 1) or (img_aspect < 1 and phys_aspect > 1):
             current_package_height_mm, current_package_width_mm = package_width_mm, package_height_mm
             
-        scale_factor = compute_scale_factor(package_height_px=img_h, package_height_mm=current_package_height_mm)
+        # Compute scale factor using the true product height, NOT the total image height
+        scale_factor = compute_scale_factor(package_height_px=true_product_h, package_height_mm=current_package_height_mm)
         
         # Keep track of PDP (first image) dimensions for the rules engine
         if idx == 0:
