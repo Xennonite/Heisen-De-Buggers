@@ -322,8 +322,19 @@ def evaluate_statutory_compliance(
 
     if cat_key in SECOND_SCHEDULE_COMMODITIES and net_qty_dict["declared_value"]:
         std_list = SECOND_SCHEDULE_COMMODITIES[cat_key]
-        if net_qty_dict["declared_value"] not in std_list:
-            is_standard_size = False
+        val = net_qty_dict["declared_value"]
+        u = (net_qty_dict["unit"] or "").lower()
+        
+        # Normalize to grams/ml for comparison
+        if u in ["kg", "l", "litre", "litres"]:
+            val = val * 1000.0
+            
+        if val not in std_list:
+            # Most commodities allow multiples of 500g or 1kg above 1000g
+            if val > 1000 and val % 500 == 0:
+                pass
+            else:
+                is_standard_size = False
 
     # 3. Typography & Clearance Bounding Boxes
     net_qty_box = None
