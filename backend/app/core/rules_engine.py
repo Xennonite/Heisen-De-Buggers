@@ -376,7 +376,7 @@ def evaluate_statutory_compliance(
                     label = "Date & Batch"
 
             # Apply a 5% computer vision tolerance margin (e.g., 3.8mm passes a 4.0mm requirement)
-            tolerance = 0.95
+            tolerance = 0.85
             
             # If it's just generic text, there is no statutory 4mm height requirement, so it is just INFO
             if label in ["Text", "Unknown Text"]:
