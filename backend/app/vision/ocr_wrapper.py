@@ -67,7 +67,7 @@ def _ocr_single_pass(image_bgr: np.ndarray, scale_factor: float, required_font_h
     full_text_parts = []
 
     try:
-        results = ocr_engine.ocr(image_bgr, cls=True)
+        results = ocr_engine.ocr(image_bgr)
         
         if not results or not results[0]:
             return full_text_parts, token_boxes
