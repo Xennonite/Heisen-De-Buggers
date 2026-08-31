@@ -18,9 +18,9 @@ except Exception:
 
 try:
     import os
-os.environ["FLAGS_use_mkldnn"] = "0"
-os.environ["FLAGS_use_onednn"] = "0"
-from paddleocr import PaddleOCR
+    os.environ["FLAGS_use_mkldnn"] = "0"
+    os.environ["FLAGS_use_onednn"] = "0"
+    from paddleocr import PaddleOCR
     # Initialize PaddleOCR globally to avoid loading weights on every request
     ocr_engine = PaddleOCR(
         use_angle_cls=True, 
