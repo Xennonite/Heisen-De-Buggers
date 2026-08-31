@@ -357,7 +357,12 @@ def evaluate_statutory_compliance(
             elif re.search(r"\b(mrp|rs\.?|price)\b", text.lower()) or "₹" in text or "/-" in text or re.search(r"(?:eap|eaf|ea)[\w\/\s]+(?:400|404|40\b)", text.lower()):
                 label = "MRP Declaration"
             elif re.search(r"\b(mfd|mfg|mfu|exp|batch|bn|use by|expiry|date|pkd)\b", text.lower()) or re.search(r"\b\d{2}[\/\-\.]\d{2}[\/\-\.]\d{2,4}\b", text):
-                label = "Date & Batch"
+                lower_txt = text.lower()
+                # Exclude instructional text and manufacturer addresses that falsely trigger the keywords
+                if re.search(r"(mfg\.?\s*(by|unit)|read the letter|see below|third place|manufactured by|marketed by|permit details)", lower_txt):
+                    pass # Keep as "Text"
+                else:
+                    label = "Date & Batch"
 
             # Apply a 5% computer vision tolerance margin (e.g., 3.8mm passes a 4.0mm requirement)
             tolerance = 0.95
