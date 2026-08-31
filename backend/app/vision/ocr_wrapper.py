@@ -27,9 +27,6 @@ try:
     ocr_engine = PaddleOCR(
         use_angle_cls=True, 
         lang='en',
-        det_limit_side_len=2560,
-        det_db_thresh=0.3,
-        det_db_unclip_ratio=1.6,
         
     )
     PADDLE_AVAILABLE = True
