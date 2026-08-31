@@ -17,14 +17,18 @@ except Exception:
     PYZBAR_AVAILABLE = False
 
 try:
-    from paddleocr import PaddleOCR
+    import os
+os.environ["FLAGS_use_mkldnn"] = "0"
+os.environ["FLAGS_use_onednn"] = "0"
+from paddleocr import PaddleOCR
     # Initialize PaddleOCR globally to avoid loading weights on every request
     ocr_engine = PaddleOCR(
         use_angle_cls=True, 
         lang='en',
         det_limit_side_len=2560,
         det_db_thresh=0.3,
-        det_db_unclip_ratio=1.6
+        det_db_unclip_ratio=1.6,
+        use_mkldnn=False
     )
     PADDLE_AVAILABLE = True
 except Exception as e:
@@ -67,7 +71,7 @@ def _ocr_single_pass(image_bgr: np.ndarray, scale_factor: float, required_font_h
     full_text_parts = []
 
     try:
-        results = ocr_engine.ocr(image_bgr, cls=True)
+        results = ocr_engine.ocr(image_bgr)
         
         if not results or not results[0]:
             return full_text_parts, token_boxes
