@@ -283,7 +283,8 @@ export default function App() {
       setCurrentScan(result);
     } catch (err) {
       console.error('Scan submission error:', err);
-      alert('Scanning failed. Please ensure the backend server is running.');
+      const errMsg = err.response?.data?.detail || 'Scanning failed. Please ensure the backend server is running.';
+      alert(`Scanning Error: ${errMsg}`);
     } finally {
       setIsScanning(false);
     }
