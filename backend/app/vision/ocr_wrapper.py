@@ -28,7 +28,7 @@ try:
         det_limit_side_len=2560,
         det_db_thresh=0.3,
         det_db_unclip_ratio=1.6,
-        use_mkldnn=False
+        
     )
     PADDLE_AVAILABLE = True
 except Exception as e:
