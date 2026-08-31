@@ -14,7 +14,7 @@ from app.storage.models import ScanRecord
 from app.models.schemas import ScanResponse, RuleChecklist
 from app.vision.preprocessor import load_image_with_exif, auto_rectify_label, get_product_pixel_height, get_product_pixel_bounds
 from app.vision.spatial_scaler import compute_scale_factor
-from app.vision.ocr_wrapper import run_ocr, decode_barcodes
+from app.vision.ocr_wrapper import run_ocr, decode_barcodes, PADDLE_AVAILABLE
 from app.core.rules_engine import evaluate_statutory_compliance
 
 router = APIRouter(prefix="/audit", tags=["Audit & Scanning"])
@@ -37,6 +37,13 @@ async def scan_package(
     compliance under LMPC Rules 2011, and generates 0-100% compliance audit findings.
     Accepts multiple images. The first image is the PDP.
     """
+
+    if not PADDLE_AVAILABLE:
+        raise HTTPException(
+            status_code=503, 
+            detail="Vision Engine Offline: PaddleOCR failed to initialize. If on Windows, ensure Visual C++ Redistributable is installed."
+        )
+
     if package_height_mm <= 0 or package_width_mm <= 0:
         raise HTTPException(status_code=400, detail="Package height and width in mm must be strictly greater than zero.")
         

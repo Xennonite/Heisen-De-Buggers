@@ -238,3 +238,17 @@ Open your terminal in the root directory of the project and run:
 python scripts/clear_history.py
 ```
 This will instantly clear the database records and purge the uploaded imagery. Refresh your browser to see the empty inspection log.
+
+
+## Troubleshooting
+
+### Windows: "Vision Engine Offline" or Silent Scan Failures
+If you are running the backend on a Windows machine and the scan process instantly fails with a "Vision Engine Offline" error (or if the application silently generates a completely empty report with zero bounding boxes), this indicates the PaddleOCR engine failed to compile.
+
+**Root Cause:**
+PaddleOCR relies on deep learning C++ binaries that require native Windows compilation libraries to run.
+
+**Solution:**
+1. Download and install the [Microsoft Visual C++ Redistributable 2015-2022 (x64)](https://learn.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist?view=msvc-170).
+2. Reboot your computer.
+3. Restart the FastAPI backend server.
