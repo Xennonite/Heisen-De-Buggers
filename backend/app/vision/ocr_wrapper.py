@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from typing import List, Dict, Any, Tuple, Optional
+from shapely.geometry import Polygon
 import math
 import logging
 from app.vision.preprocessor import enhance_text_contrast, enhance_metallic_surface
@@ -185,11 +186,14 @@ def run_ocr(
     
     for extra_boxes in [boxes_2, boxes_3]:
         for b in extra_boxes:
-            b_poly = Polygon(b["box_pixels"]) if len(b["box_pixels"]) == 8 else None
+            px = b["box_pixels"]
+            # Convert [x,y,w,h] to [[x,y], [x+w,y], [x+w,y+h], [x,y+h]] for shapely Polygon
+            b_poly = Polygon([(px[0], px[1]), (px[0]+px[2], px[1]), (px[0]+px[2], px[1]+px[3]), (px[0], px[1]+px[3])]) if len(px) == 4 else None
             
             overlap = False
             for mb in merged_boxes:
-                mb_poly = Polygon(mb["box_pixels"]) if len(mb["box_pixels"]) == 8 else None
+                mpx = mb["box_pixels"]
+                mb_poly = Polygon([(mpx[0], mpx[1]), (mpx[0]+mpx[2], mpx[1]), (mpx[0]+mpx[2], mpx[1]+mpx[3]), (mpx[0], mpx[1]+mpx[3])]) if len(mpx) == 4 else None
                 if b_poly and mb_poly and b_poly.intersects(mb_poly):
                     iou = b_poly.intersection(mb_poly).area / b_poly.union(mb_poly).area
                     if iou > 0.3:
