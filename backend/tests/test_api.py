@@ -31,7 +31,7 @@ def test_audit_scan_endpoint():
     img_buf = create_mock_image_bytes()
     response = client.post(
         "/api/v1/audit/scan",
-        files={"file": ("test_package.jpg", img_buf, "image/jpeg")},
+        files={"files": ("test_package.jpg", img_buf, "image/jpeg")},
         data={
             "package_height_mm": "150.0",
             "package_width_mm": "80.0",

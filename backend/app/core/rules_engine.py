@@ -340,6 +340,7 @@ def evaluate_statutory_compliance(
     net_qty_box = None
     net_qty_surface_idx = 0
     mrp_box = None
+    all_processed_boxes = []
 
     for s_idx, surface in enumerate(surfaces):
         processed_boxes = []
@@ -406,6 +407,7 @@ def evaluate_statutory_compliance(
                 enriched_box["rule_violation"] = violation_reason
                 
             processed_boxes.append(enriched_box)
+            all_processed_boxes.append(enriched_box)
 
             # Track key boxes for spatial checks
             if label == "Net Quantity" and (not net_qty_box or status == "PASS"):
@@ -715,5 +717,5 @@ def evaluate_statutory_compliance(
             "is_value_pack_exempt": is_value_pack,
         },
         "violations": violations,
-        "bounding_boxes": processed_boxes,
+        "bounding_boxes": all_processed_boxes,
     }
