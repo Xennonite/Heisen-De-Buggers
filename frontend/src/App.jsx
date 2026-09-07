@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Scale, Search, Activity, ArrowRight, Loader2, Plus,
+  Scale, Search, Activity, ArrowRight, Loader2, Plus, Clock,
   FileText, Eye, ChevronLeft, ChevronRight, ShieldCheck, AlertTriangle, ShieldAlert,
 } from 'lucide-react';
 import IngestionForm from './components/IngestionForm';
@@ -10,6 +10,23 @@ import ComplianceCard from './components/ComplianceCard';
 import ExportPanel from './components/ExportPanel';
 import SeventhScheduleModal from './components/SeventhScheduleModal';
 import { auditApi } from './services/api';
+
+// ─── Live Clock ──────────────────────────────────────────────────────────────
+function LiveClock() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell-700 bg-shell-800 text-shell-600 hover:text-white hover:border-shell-600 transition cursor-default">
+      <Clock className="w-3 h-3" />
+      <span className="text-[11px] font-medium font-mono">{time.toLocaleString()}</span>
+    </div>
+  );
+}
 
 // ─── Case Sidebar ──────────────────────────────────────────────────────────
 function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collapsed, onToggleCollapse }) {
@@ -148,7 +165,9 @@ title="Collapse sidebar"
                       </span>
                       {statusIcon(item.status)}
                     </div>
-                    <div className="text-[11px] text-shell-600 truncate capitalize">{item.category}</div>
+                    <div className="text-[11px] text-shell-600 truncate capitalize">
+                      {item.category} {item.timestamp && ` • ${new Date(item.timestamp).toLocaleDateString()}`}
+                    </div>
                     <div className="text-[11px] text-shell-600 font-mono">{item.compliance_score}%</div>
                   </>
                 )}
@@ -291,7 +310,7 @@ export default function App() {
   };
 
   const handleSelectScan = (scanData) => {
-    setCurrentScan(scanData);
+    setCurrentScan({ ...scanData, is_historical: true });
     if (scanData.image_url) setCurrentImageUrl(scanData.image_url);
   };
 
@@ -306,6 +325,10 @@ export default function App() {
       {/* ── Titlebar with centred brand ── */}
 <div className="flex-shrink-0 h-12 flex items-center px-4 border-b border-shell-700 bg-shell-900 relative">
 
+{/* Left: Live Clock */}
+<div className="mr-auto flex items-center z-10">
+  <LiveClock />
+</div>
 
 {/* Centre: MetroVerity brand */}
 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

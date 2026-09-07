@@ -12,6 +12,35 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
 
  const fileInputRef = useRef(null);
 
+ React.useEffect(() => {
+    if (currentScan) {
+      setHeightMm(currentScan.package_height_mm || 150);
+      setWidthMm(currentScan.package_width_mm || 80);
+      setDepthMm(currentScan.package_depth_mm || 40);
+      setContainerType(currentScan.container_type || 'rectangular');
+      setCategory(currentScan.category || 'general');
+
+      if (currentScan.is_historical) {
+        setFiles([]);
+        if (currentScan.surfaces && currentScan.surfaces.length > 0) {
+          setPreviewUrls(currentScan.surfaces.map(s => s.image_url));
+        } else if (currentScan.image_url) {
+          setPreviewUrls([currentScan.image_url]);
+        } else {
+          setPreviewUrls([]);
+        }
+      }
+    } else {
+      setFiles([]);
+      setPreviewUrls([]);
+      setHeightMm(150);
+      setWidthMm(80);
+      setDepthMm(40);
+      setContainerType('rectangular');
+      setCategory('biscuits');
+    }
+  }, [currentScan]);
+
  const handleFileChange = (e) => {
  const selectedFiles = Array.from(e.target.files);
  if (selectedFiles.length > 0) {
@@ -81,16 +110,16 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
  <div>
  <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider block mb-2 flex justify-between">
  <span>Package Images (.jpg, .png)</span>
- {files.length > 0 && <span className="text-brand-500">{files.length} Selected</span>}
+ {(files.length > 0 || previewUrls.length > 0) && <span className="text-brand-500">{Math.max(files.length, previewUrls.length)} Selected</span>}
  </label>
  <div
  className={`border-2 border-dashed rounded-xl p-4 text-center transition flex flex-col min-h-[140px] ${
- files.length > 0
+ (files.length > 0 || previewUrls.length > 0)
  ? 'border-brand-500/50 bg-white'
  : 'border-gray-200 hover:border-gray-200 bg-shell-900/30 cursor-pointer justify-center items-center'
  }`}
  onClick={(e) => {
- if (files.length === 0) fileInputRef.current?.click();
+ if (files.length === 0 && previewUrls.length === 0) fileInputRef.current?.click();
  }}
  >
  <input
@@ -102,7 +131,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
  onChange={handleFileChange}
  />
 
- {files.length > 0 ? (
+ {(files.length > 0 || previewUrls.length > 0) ? (
  <div className="w-full">
  <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
  {previewUrls.map((url, idx) => (
@@ -115,6 +144,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
  <div className="absolute top-1 left-1 bg-black/60 text-gray-900 text-[9px] px-1.5 py-0.5 rounded">
  {idx === 0 ? 'PDP (Front)' : `Side ${idx}`}
  </div>
+ {!currentScan?.is_historical && (
  <button
  type="button"
  onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
@@ -122,8 +152,10 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
  >
  X
  </button>
+ )}
  </div>
  ))}
+ {!currentScan?.is_historical && (
  <button 
  type="button"
  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
@@ -132,6 +164,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
  <Upload className="w-5 h-5 mb-1" />
  <span className="text-[10px] font-medium">Add Image</span>
  </button>
+ )}
  </div>
  <div className="text-left mt-2 text-[10px] text-brand-500">
  Ready for Computer Vision Analysis. Ensure the first image is the Principal Display Panel (Front).
