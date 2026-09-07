@@ -45,12 +45,16 @@ export default function ComplianceCard({ scanResult }) {
  }
  };
 
+ const formattedDate = timestamp ? new Date(timestamp).toLocaleString() : '';
+
  return (
  <div className="bg-white shadow-card border-2 border-gray-200 border border-gray-200 rounded-2xl p-6 shadow-xl space-y-6">
  {/* Header */}
  <div className="flex items-center justify-between">
  <div>
- <span className="text-[11px] font-mono text-slate-500 block">INSPECTION DOSSIER #{scan_id}</span>
+ <span className="text-[11px] font-mono text-slate-500 block">
+   INSPECTION DOSSIER #{scan_id} {formattedDate && ` • ${formattedDate}`}
+ </span>
  <h2 className="text-base font-semibold text-gray-900 flex items-center space-x-2">
  <Award className="w-5 h-5 text-brand-500" />
  <span>Quantitative Scoring & Compounding Fine</span>
