@@ -45,8 +45,9 @@ When you open MetroVerity (`http://localhost:5173`), the dashboard presents a cl
 
 To guarantee mathematically precise font height calculations, the system must calibrate pixels against real physical millimeters:
 
-1. **Upload Label Image:**
-   - Click on the upload zone or drag and drop a `.jpg` or `.png` photograph of the product packaging.
+1. **Upload Label Image or Paste URL:**
+   - **Physical Scan:** Click on the upload zone or drag and drop a `.jpg` or `.png` photograph of the product packaging.
+   - **Digital E-Commerce Scan:** Click on the "E-Commerce Integration" tab and paste a valid Amazon or Flipkart URL to perform automated Rule 6(10) web crawling and cross-verification.
    - *Tip:* Alternatively, click any of the **Quick-Load Demo Presets** (e.g. *Britannia Biscuit*, *Fortune Oil Pouch*, *Herbal Shampoo*, or *Value Tea Pack*) to automatically load realistic sample packaging and dimensions.
 2. **Enter Verified Dimensions (in mm):**
    - Measure the physical package height ($H$) in millimeters and enter it into the **Height (mm)** field.
@@ -100,6 +101,8 @@ The **Statutory Metrology Compliance Checklist** provides an exhaustive Pass/Fai
 | **Rule 12(6)** | Deceptive Qualifiers | Absence of misleading terms like `"Approx"`, `"Approximate"`, `"Minimum"`, unauthorized `"When Packed"`. |
 | **Rule 13** | SI Unit Standardization | Standard metric symbols used (e.g. capital `'L'` for Litre, `'g'`, `'kg'`, `'ml'`). |
 | **Second Schedule** | Standard Pack Sizes | Nominal quantity matches Second Schedule standard SKUs (or is exempt as a ₹1–₹10 value pack). |
+| **Rule 6(10) / 26(g)** | Digital Web Declarations | (E-Commerce) Webpage text must explicitly contain MRP, Net Qty, Mfg Name, and Consumer Care (contact/support/email). |
+| **Cross-Verification** | Web vs. Physical | (E-Commerce) Digital web claims are checked against physical label OCR to detect deceptive discrepancies. |
 
 ---
 
@@ -273,6 +276,7 @@ graph TD
 
     subgraph Backend [FastAPI 3.12 Backend Core]
         API_REQ --> ROUTER[FastAPI API Router]
+        ROUTER --> SCRAPER[Playwright Headless E-Commerce Scraper]
         ROUTER --> PREPROC[OpenCV Preprocessing & Perspective Warp]
         ROUTER --> SCALER[Spatial Metric Scaler S = px/mm]
         ROUTER --> OCR[OCR Wrapper & Pyzbar Barcode Decoder]
@@ -376,37 +380,43 @@ Implemented in: [`backend/app/core/rules_engine.py`](file:///home/binaryraptor/P
 
 ## 3. Backend Module Breakdown
 
-### 1. `app/vision/preprocessor.py`
+### 1. `app/vision/scraper.py` (E-Commerce Module)
+- `scrape_ecommerce_listing(url)`: Uses headless Playwright to navigate to e-commerce URLs, bypasses basic anti-bot with custom user agents, and executes dynamic JavaScript scrolls to trigger lazy-loaded product galleries.
+- `High-Res Regex Engine`: Intercepts `<img>` URLs and strips thumbnail modifiers (e.g., removing Amazon's `._AC_UL320_` or replacing Flipkart's `/300/300/` with `/1000/1000/`) to download pristine, high-resolution source images for OCR.
+- Extracts `document.body.innerText` for digital text evaluation under Rule 6(10).
+
+### 2. `app/vision/preprocessor.py`
 - `load_image_with_exif(image_path)`: Reads images using PIL + OpenCV, automatically correcting orientation based on EXIF tags.
 - `four_point_transform(image, pts)`: Computes perspective transform matrix and rectifies tilted labels.
 - `auto_rectify_label(image)`: Canny edge and contour detection to identify 4-point quadrilateral label boundaries.
 - `calculate_contrast_ratio(bgr_crop)`: Text-to-background luminance ratio estimation.
 
-### 2. `app/vision/ocr_wrapper.py`
+### 3. `app/vision/ocr_wrapper.py`
 - `decode_barcodes(image_bgr)`: Uses `pyzbar` to decode 1D/2D barcodes (EAN-13, UPC-A, Code128, QR) and validates GTIN length.
 - `extract_text_regions_cv(image_bgr)`: Morphological gradient and Otsu thresholding to extract candidate text bounding boxes.
 - `run_ocr(image_bgr, scale_factor, required_font_height_mm, is_metallic_surface)`: Uses **PaddleOCR** to extract text tokens. Features an automatic downscaling pipeline (`max_dim=600px`) for metallic surfaces to fuse disconnected dot-matrix text on high-res images, before inversely scaling bounding boxes.
 
-### 3. `app/core/rules_engine.py`
+### 4. `app/core/rules_engine.py`
 - `extract_pin_code(text)`: Regex matching 6-digit Indian PIN codes (`\b[1-9][0-9]{5}\b`).
 - `extract_country_of_origin(text)`: Identifies origin declarations (`Made in India`, `Country of Origin: ...`).
 - `extract_mfg_date(text)`: Parses date of packing/manufacturing formats (`MM/YYYY`, `Month YYYY`, `PKD DD/MM/YY`).
-- `extract_consumer_care(text)`: Parses toll-free numbers (`1800...`), helpline numbers, and support emails.
+- `extract_consumer_care(text)`: Parses toll-free numbers (`1800...`), helpline numbers, support emails, and keywords like `contact`, `support`, `grievance`.
 - `extract_mrp(text)`: Extracts declared price and checks for mandatory `"(incl. of all taxes)"` or `"(inclusive of all taxes)"` phrase.
 - `extract_net_quantity(text)`: Extracts declared numeric quantity and unit.
-- `evaluate_statutory_compliance(...)`: End-to-end evaluation pipeline assembling the checklist, compounding penalties, and score.
+- `evaluate_statutory_compliance(...)`: End-to-end evaluation pipeline assembling the checklist, compounding penalties, and score for physical scans.
+- `evaluate_ecommerce_cross_verification(...)`: Evaluates e-commerce web text under Rule 6(10) / Rule 26(g) and performs digital vs. physical text cross-verification.
 
-### 4. `app/api/physical_test.py`
+### 5. `app/api/physical_test.py`
 - `POST /api/v1/test/mpe-check`: Evaluates batch weights against First Schedule MPE piecewise limits, sample mean, Fifth Schedule defective allowances, and zero-tolerance conditions.
 
-### 5. `app/api/report.py`
+### 6. `app/api/report.py`
 - `POST /api/v1/report/export`: Generates downloadable documents:
   - `export_type="pdf"`: Complete Inspection Dossier via ReportLab with SHA-256 evidence hash.
   - `export_type="seventh_schedule_form_a"`: Official statutory notice to manufacturer/packer under Rules 27 & 28.
   - `export_type="docx"`: Editable Word document via `python-docx`.
   - `export_type="csv"`: Tabular CSV audit data.
 
-### 6. `app/storage/`
+### 7. `app/storage/`
 - `models.py`: SQLAlchemy `ScanRecord` model storing scan metadata, measurements, image filename, and full JSON payload.
 - `database.py`: Synchronous and asynchronous SQLite session factories.
 
@@ -441,7 +451,8 @@ In [`VisualOverlay.jsx`](file:///home/binaryraptor/Projects/Heisen-De-Buggers/fr
 
 ### 1. `POST /api/v1/audit/scan`
 **Request (multipart/form-data):**
-- `files`: Array of image files (`.jpg`, `.png`) for multi-surface scanning
+- `url`: string (optional, for e-commerce scraping)
+- `files`: Array of image files (`.jpg`, `.png`) for multi-surface scanning (if `url` is not provided)
 - `package_height_mm`: float (e.g. `150.0`)
 - `package_width_mm`: float (e.g. `80.0`)
 - `package_depth_mm`: float (optional, e.g. `30.0`)

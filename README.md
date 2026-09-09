@@ -20,9 +20,15 @@ MetroVerity is an automated Legal Metrology compliance verification and statutor
 - **Syntax & Semantics Validator:** Extracts and validates mandatory declarations, strict MRP syntax ("incl. of all taxes"), and SI Units (Rule 13).
 - **Deceptive Term Classifier:** Flags misleading qualifiers like "Approx", "Min", or unauthorized "When Packed" (Rule 12(6)).
 
-### 3. Physical Testing & Enforcement Suite
+### 3. E-Commerce LMPC Enforcement Module (Rule 6(10) & 26(g))
+- **Automated Digital Scraping:** Headless Playwright scraper bypasses basic anti-bot, triggers lazy-loaded image galleries, and extracts raw web text.
+- **High-Res Gallery Extraction:** Regex engine strips e-commerce thumbnail modifiers (e.g., Amazon `._AC_UL320_`, Flipkart `/300/300/`) to retrieve pristine, ultra-high-resolution images for OCR.
+- **Cross-Verification Integrity:** Automatically cross-references mandatory web declarations against physical packaging labels (via OCR) to detect deceptive pricing or quantity mismatches online.
+- **Smart Consumer Care NLP:** Expanded regex models detect hidden e-commerce contact variants (e.g., "support@", "contact", "grievance") to prevent false positives.
+
+### 4. Physical Testing & Enforcement Suite
 - **First Schedule MPE Engine:** Computes exact Maximum Permissible Error limits across all quantity tiers and evaluates statistical batch samples.
-- **Compounding Fee Calculator:** Auto-assesses statutory fines (₹2,000 to ₹50,000) based on Sections 29 & 36.
+- **Compounding Fee Calculator:** Auto-assesses statutory fines (₹2,000 to ₹50,000) based on Sections 29 & 36, adapting penalties specifically for E-commerce violations.
 - **Statutory Notice Generation:** Auto-populates Seventh Schedule Forms A & B and seals them as cryptographically signed, Tamper-Evident PDFs.
 
 ## 🛠 Technology Stack
