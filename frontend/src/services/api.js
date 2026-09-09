@@ -16,6 +16,11 @@ export const auditApi = {
     return response.data;
   },
 
+  scrapeUrl: async (payload) => {
+    const response = await client.post('/audit/scrape', payload);
+    return response.data;
+  },
+
   getHistory: async (limit = 20) => {
     const response = await client.get(`/audit/history?limit=${limit}`);
     return response.data;

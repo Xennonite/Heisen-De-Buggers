@@ -293,12 +293,18 @@ export default function App() {
   const [isMpeModalOpen, setIsMpeModalOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const handleScanSubmit = async (formData) => {
+  const handleScanSubmit = async (payload, mode = 'physical') => {
     try {
       setIsScanning(true);
-      const fileObj = formData.get('file');
-      if (fileObj) setCurrentImageUrl(URL.createObjectURL(fileObj));
-      const result = await auditApi.scanPackage(formData);
+      let result;
+      if (mode === 'physical') {
+        const fileObj = payload.getAll('files')[0];
+        if (fileObj) setCurrentImageUrl(URL.createObjectURL(fileObj));
+        result = await auditApi.scanPackage(payload);
+      } else {
+        setCurrentImageUrl(''); // Will be set by visual overlay if backend returns an image
+        result = await auditApi.scrapeUrl(payload);
+      }
       setCurrentScan(result);
     } catch (err) {
       console.error('Scan submission error:', err);

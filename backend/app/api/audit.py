@@ -209,6 +209,67 @@ async def scan_package(
     return response_data
 
 
+from pydantic import BaseModel
+from app.vision.scraper import scrape_ecommerce_listing
+from app.core.rules_engine import evaluate_ecommerce_cross_verification
+import numpy as np
+import cv2
+
+class ScrapeRequest(BaseModel):
+    url: str
+    is_loose_commodity: bool = False
+    category: str = "general"
+
+@router.post("/scrape")
+async def audit_ecommerce_url(request: ScrapeRequest):
+    """
+    Scrapes an e-commerce URL and performs cross-verification against product images.
+    """
+    try:
+        scraped_data = await scrape_ecommerce_listing(request.url)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to scrape URL: {str(e)}")
+
+    combined_ocr_text = ""
+    scan_id = f"MV-2026-{uuid.uuid4().hex[:6].upper()}"
+    saved_images = []
+    
+    for idx, img_bytes in enumerate(scraped_data["product_images"]):
+        filename = f"{scan_id}_ecommerce_img_{idx}.jpg"
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        with open(file_path, "wb") as f:
+            f.write(img_bytes)
+            
+        nparr = np.frombuffer(img_bytes, np.uint8)
+        img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img_bgr is not None:
+            text, token_boxes = run_ocr(img_bgr, scale_factor=1.0, required_font_height_mm=2.5)
+            combined_ocr_text += f" {text}"
+            img_h, img_w = img_bgr.shape[:2]
+            saved_images.append({
+                "image_url": f"/uploads/{filename}",
+                "original_dimensions": {"width": img_w, "height": img_h},
+                "bounding_boxes": token_boxes
+            })
+
+    audit_results = evaluate_ecommerce_cross_verification(
+        web_text=scraped_data["text"],
+        ocr_text=combined_ocr_text,
+        is_loose_commodity=request.is_loose_commodity,
+        category=request.category
+    )
+
+    audit_results["url"] = request.url
+    audit_results["scan_id"] = scan_id
+    if saved_images:
+        audit_results["surfaces"] = saved_images
+        audit_results["image_url"] = saved_images[0]["image_url"]
+        audit_results["original_dimensions"] = saved_images[0]["original_dimensions"]
+        audit_results["bounding_boxes"] = saved_images[0]["bounding_boxes"]
+
+    return audit_results
+
+
 @router.get("/history", response_model=List[dict])
 def get_scan_history(limit: int = 20, db: Session = Depends(get_sync_db)):
     """Retrieves previous inspection scan history records."""

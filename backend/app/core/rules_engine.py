@@ -72,7 +72,7 @@ def extract_mfg_date(text: str) -> Tuple[bool, str]:
 
 def extract_consumer_care(text: str) -> Dict[str, Any]:
     """Finds consumer care contact details under Rule 6(1)(f)."""
-    phone_match = re.search(r"(?:ph(?:one)?|call|toll[\s\-]*free|customer[\s\-]*care|tel)[^\d]*([\d\-\s\(\)]{8,15})", text, re.IGNORECASE)
+    phone_match = re.search(r"(?:ph(?:one)?|call|toll[\s\-]*free|customer[\s\-]*care|consumer[\s\-]*care|tel|contact|support|grievance)[^\d]*([\d\-\s\(\)]{8,15})", text, re.IGNORECASE)
     email_match = re.search(r"([a-zA-Z0-9_\-\.]+@[a-zA-Z0-9_\-\.]+\.[a-zA-Z]{2,5})", text)
     
     return {
@@ -718,4 +718,106 @@ def evaluate_statutory_compliance(
         },
         "violations": violations,
         "bounding_boxes": all_processed_boxes,
+    }
+
+
+def evaluate_ecommerce_cross_verification(web_text: str, ocr_text: str, is_loose_commodity: bool, category: str = "general") -> Dict[str, Any]:
+    """
+    Evaluates E-Commerce specific compliance based on Rule 6(10) and Rule 26(g).
+    Cross-verifies claims made on the webpage vs the physical product label (OCR).
+    """
+    violations = []
+    compounding_fine_inr = 0
+    score = 100
+
+    # 1. Extract from Web
+    web_mrp = extract_mrp(web_text)
+    web_qty = extract_net_quantity(web_text, [])
+    web_country_present, web_country = extract_country_of_origin(web_text)
+    web_care = extract_consumer_care(web_text)
+    web_mfg_name = bool(re.search(r"(?:mfd[\s\.]*by|manufactured by|packed by|marketed by|seller|brand)", web_text, re.IGNORECASE))
+
+    # 2. Extract from OCR
+    ocr_mrp = extract_mrp(ocr_text)
+    ocr_qty = extract_net_quantity(ocr_text, [])
+
+    # --- Rule 6(10) or 26(g) Checks ---
+    if is_loose_commodity:
+        # Rule 26(g): Manufacturer/Importer, Country of Origin, Consumer Care, Sizes, MRP
+        if not web_mfg_name:
+            violations.append({"rule": "Rule 26(g)(1)", "severity": "HIGH", "description": "Missing Manufacturer/Seller Name.", "estimated_fine_inr": 5000, "compounding_section": "Section 29"})
+            score -= 15
+            compounding_fine_inr += 5000
+        if not web_country_present:
+            violations.append({"rule": "Rule 26(g)(1)", "severity": "HIGH", "description": "Missing Country of Origin.", "estimated_fine_inr": 10000, "compounding_section": "Section 29"})
+            score -= 15
+            compounding_fine_inr += 10000
+        if not web_care["present"]:
+            violations.append({"rule": "Rule 26(g)(2)", "severity": "HIGH", "description": "Missing Consumer Care details on webpage.", "estimated_fine_inr": 5000, "compounding_section": "Section 29"})
+            score -= 15
+            compounding_fine_inr += 5000
+        if not web_mrp["present"]:
+            violations.append({"rule": "Rule 26(g)(4)", "severity": "CRITICAL", "description": "Missing MRP on webpage.", "estimated_fine_inr": 25000, "compounding_section": "Section 36(1)"})
+            score -= 25
+            compounding_fine_inr += 25000
+    else:
+        # Rule 6(10): Packaged commodity. All of 6(1) except mfg date.
+        if not web_mfg_name:
+            violations.append({"rule": "Rule 6(10) -> 6(1)(a)", "severity": "HIGH", "description": "Missing Manufacturer Name.", "estimated_fine_inr": 5000, "compounding_section": "Section 29"})
+            score -= 15
+            compounding_fine_inr += 5000
+        if not web_qty["present"]:
+            violations.append({"rule": "Rule 6(10) -> 6(1)(c)", "severity": "HIGH", "description": "Missing Net Quantity on webpage.", "estimated_fine_inr": 5000, "compounding_section": "Section 29"})
+            score -= 15
+            compounding_fine_inr += 5000
+        if not web_mrp["present"]:
+            violations.append({"rule": "Rule 6(10) -> 6(1)(e)", "severity": "CRITICAL", "description": "Missing MRP on webpage.", "estimated_fine_inr": 25000, "compounding_section": "Section 36(1)"})
+            score -= 25
+            compounding_fine_inr += 25000
+        if not web_care["present"]:
+            violations.append({"rule": "Rule 6(10) -> 6(1)(f)", "severity": "HIGH", "description": "Missing Consumer Care details on webpage.", "estimated_fine_inr": 5000, "compounding_section": "Section 29"})
+            score -= 15
+            compounding_fine_inr += 5000
+            
+    # --- Cross-Verification ---
+    discrepancies = []
+    
+    # MRP Check
+    if web_mrp["present"] and ocr_mrp["present"]:
+        if web_mrp["declared_price"] != ocr_mrp["declared_price"]:
+            discrepancies.append(f"MRP Mismatch: Web says ₹{web_mrp['declared_price']} but Label says ₹{ocr_mrp['declared_price']}")
+            score -= 30
+            violations.append({"rule": "Cross-Verification", "severity": "CRITICAL", "description": discrepancies[-1], "estimated_fine_inr": 25000, "compounding_section": "Section 36(1)"})
+            compounding_fine_inr += 25000
+            
+    # Net Qty Check
+    if web_qty["present"] and ocr_qty["present"]:
+        if web_qty["declared_value"] != ocr_qty["declared_value"]:
+            discrepancies.append(f"Net Qty Mismatch: Web says {web_qty['declared_value']} but Label says {ocr_qty['declared_value']}")
+            score -= 30
+            violations.append({"rule": "Cross-Verification", "severity": "CRITICAL", "description": discrepancies[-1], "estimated_fine_inr": 10000, "compounding_section": "Section 29"})
+            compounding_fine_inr += 10000
+
+    final_score = max(0, min(100, score))
+    status = "COMPLIANT" if final_score >= 90 else ("PARTIALLY_COMPLIANT" if final_score >= 50 else "NON_COMPLIANT")
+
+    return {
+        "compliance_score": final_score,
+        "status": status,
+        "estimated_compounding_fine_inr": compounding_fine_inr,
+
+        "is_loose_commodity": is_loose_commodity,
+        "discrepancies_detected": len(discrepancies) > 0,
+        "discrepancies": discrepancies,
+        "violations": violations,
+        "web_declarations": {
+            "mrp": web_mrp["declared_price"],
+            "net_quantity": web_qty["declared_value"],
+            "country_of_origin": web_country,
+            "consumer_care": web_care["present"]
+        },
+        "ocr_declarations": {
+            "mrp": ocr_mrp["declared_price"],
+            "net_quantity": ocr_qty["declared_value"]
+        }
     }

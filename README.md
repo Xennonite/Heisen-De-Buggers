@@ -49,13 +49,8 @@ MetroVerity uses **PaddleOCR** for robust text extraction.
 
 ### Backend Setup
 
-<table>
-<tr>
-<th width="50%">Windows</th>
-<th width="50%">Linux / macOS</th>
-</tr>
-<tr>
-<td valign="top">
+<details>
+<summary><b>Windows</b></summary>
 
 ```cmd
 cd backend
@@ -64,9 +59,9 @@ python -m venv .venv
 pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
-</td>
-<td valign="top">
+</details>
+<details>
+<summary><b>Linux / macOS</b></summary>
 
 ```bash
 cd backend
@@ -75,39 +70,28 @@ source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
-</td>
-</tr>
-</table>
+</details>
 
 ### Frontend Setup
 
-<table>
-<tr>
-<th width="50%">Windows</th>
-<th width="50%">Linux / macOS</th>
-</tr>
-<tr>
-<td valign="top">
+<details>
+<summary><b>Windows</b></summary>
 
 ```cmd
 cd frontend
 npm install
 npm run dev
 ```
-
-</td>
-<td valign="top">
+</details>
+<details>
+<summary><b>Linux / macOS</b></summary>
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
-</td>
-</tr>
-</table>
+</details>
 
 ## 📖 Documentation
 For comprehensive details on system architecture, metrological mathematical foundations, and a step-by-step inspector workflow, please refer to the [Documentation](docs/DOCUMENTATION.md).

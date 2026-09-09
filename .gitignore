@@ -40,3 +40,9 @@ yarn-error.log*
 Thumbs.db
 .*/
 Others/
+
+# App Data
+backend/uploads/
+backend/reports/
+backend/metroverity.db
+backend/test_*.py
