@@ -1,3 +1,5 @@
+from app.api.auth import get_current_user
+from fastapi import Depends
 import io
 import csv
 import hashlib
@@ -384,8 +386,13 @@ def generate_csv_report(data: Dict[str, Any]) -> str:
     return output.getvalue()
 
 
+from app.api.auth import get_current_user
+
 @router.post("/export")
-def export_report(payload: ExportRequest):
+def export_report(
+    payload: ExportRequest,
+    user: dict = Depends(get_current_user)
+):
     """
     Exports inspection results in PDF, DOCX, CSV, or Seventh Schedule Forms.
     """

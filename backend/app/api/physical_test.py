@@ -1,3 +1,5 @@
+from app.api.auth import require_role
+from fastapi import Depends
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any, List
 from app.models.schemas import MpeTestRequest, MpeTestResponse, MpeSampleItem
@@ -51,7 +53,7 @@ def get_fifth_schedule_max_defective_units(sample_size: int) -> int:
 
 
 @router.post("/mpe-check", response_model=MpeTestResponse)
-def perform_mpe_check(payload: MpeTestRequest) -> MpeTestResponse:
+def perform_mpe_check(payload: MpeTestRequest, user: dict = Depends(require_role(["LMPC_OFFICER", "ADMIN"]))) -> MpeTestResponse:
     """
     Performs physical sampling verification and Maximum Permissible Error (MPE) analysis
     under Rule 19(6) and the First Schedule of LMPC Rules, 2011.
