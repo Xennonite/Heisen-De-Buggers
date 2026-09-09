@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Scale, Search, Activity, ArrowRight, Loader2, Plus, Clock,
   FileText, Eye, ChevronLeft, ChevronRight, ShieldCheck, AlertTriangle, ShieldAlert,
-} from 'lucide-react';
+Trash2 } from 'lucide-react';
+import { SignedIn, SignedOut, UserButton, SignIn, useUser } from '@clerk/clerk-react';
 import IngestionForm from './components/IngestionForm';
 import VisualOverlay from './components/VisualOverlay';
 import ComplianceChecklist from './components/ComplianceChecklist';
@@ -33,21 +34,51 @@ function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collap
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const { user } = useUser();
+  const role = user?.publicMetadata?.role;
+  const isAdmin = role === 'ADMIN';
+
+  const fetchHistory = async () => {
+    try {
+      setLoading(true);
+      const res = await auditApi.getHistory(30);
+      setHistory(res || []);
+    } catch (err) {
+      console.error('History fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        setLoading(true);
-        const res = await auditApi.getHistory(30);
-        setHistory(res || []);
-      } catch (err) {
-        console.error('History fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchHistory();
   }, [currentScanId]);
+
+  const handleDelete = async (e, scanId) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete scan #${scanId}?`)) {
+      try {
+        await auditApi.deleteScan(scanId);
+        fetchHistory();
+      } catch (err) {
+        alert('Failed to delete scan.');
+        console.error(err);
+      }
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (window.confirm('Are you sure you want to clear ALL inspection records? This action cannot be undone.')) {
+      try {
+        await auditApi.deleteAllScans();
+        fetchHistory();
+      } catch (err) {
+        alert('Failed to clear records.');
+        console.error(err);
+      }
+    }
+  };
 
   const filtered = history.filter(h =>
     h.scan_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,9 +142,9 @@ title="Collapse sidebar"
         </div>
       )}
 
-      {/* Search — only expanded */}
+      {/* Search and Clear All — only expanded */}
       {!collapsed && (
-        <div className="px-2 pt-2 pb-1">
+        <div className="px-2 pt-2 pb-1 space-y-2">
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-shell-600 absolute left-2.5 top-2" />
             <input
@@ -124,6 +155,18 @@ title="Collapse sidebar"
               className="w-full bg-shell-800 border border-shell-700 rounded-md pl-7 pr-2 py-1.5 text-xs text-white placeholder-shell-600 focus:outline-none focus:border-brand-500"
             />
           </div>
+          {isAdmin && history.length > 0 && (
+            <div className="flex justify-end pr-1">
+              <button 
+                onClick={handleDeleteAll}
+                className="text-[10px] text-shell-500 hover:text-fail flex items-center space-x-1 transition"
+                title="Clear all records"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Clear All</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -149,7 +192,7 @@ title="Collapse sidebar"
                 key={item.id || item.scan_id}
                 onClick={() => item.data && onSelectScan(item.data)}
                 title={collapsed ? `#${item.scan_id}` : undefined}
-                className={`w-full text-left rounded-lg transition group ${
+                className={`w-full text-left rounded-lg transition group relative ${
                   isActive
                     ? 'bg-brand-500/20 border border-brand-500/40'
                     : 'hover:bg-shell-800 border border-transparent'
@@ -287,6 +330,9 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit })
 
 // ─── Root App ──────────────────────────────────────────────────────────────
 export default function App() {
+  const { user } = useUser();
+  const role = user?.publicMetadata?.role || 'UNASSIGNED ROLE';
+  
   const [currentScan, setCurrentScan] = useState(null);
   const [currentImageUrl, setCurrentImageUrl] = useState('');
   const [isScanning, setIsScanning] = useState(false);
@@ -326,7 +372,23 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-shell-950 overflow-hidden font-sans">
+    <>
+      <SignedOut>
+        <div className="min-h-screen bg-shell-950 flex flex-col items-center justify-center p-4">
+           <div className="mb-8 flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center">
+              <Scale className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white tracking-tight">MetroVerity</h1>
+              <p className="text-sm text-shell-600 font-medium">Department of Consumer Affairs</p>
+            </div>
+          </div>
+          <SignIn />
+        </div>
+      </SignedOut>
+      <SignedIn>
+        <div className="h-screen flex flex-col bg-shell-950 overflow-hidden font-sans">
 
       {/* ── Titlebar with centred brand ── */}
 <div className="flex-shrink-0 h-12 flex items-center px-4 border-b border-shell-700 bg-shell-900 relative">
@@ -362,6 +424,15 @@ className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell
 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
 <span>Rule Engine Online</span>
 </span>
+
+<div className="flex items-center space-x-3 pl-4 border-l border-shell-700">
+  <div className="flex flex-col items-end">
+    <span className="text-[11px] font-semibold text-white">{user?.fullName || user?.primaryEmailAddress?.emailAddress}</span>
+    <span className="text-[9px] text-brand-400 uppercase tracking-wider">{role.replace('_', ' ')}</span>
+  </div>
+  <UserButton />
+</div>
+
 </div>
 </div>
 
@@ -409,5 +480,7 @@ className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell
         currentScan={currentScan}
       />
     </div>
+    </SignedIn>
+    </>
   );
 }

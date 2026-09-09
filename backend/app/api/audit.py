@@ -16,6 +16,7 @@ from app.vision.preprocessor import load_image_with_exif, auto_rectify_label, ge
 from app.vision.spatial_scaler import compute_scale_factor
 from app.vision.ocr_wrapper import run_ocr, decode_barcodes, PADDLE_AVAILABLE
 from app.core.rules_engine import evaluate_statutory_compliance
+from app.api.auth import require_role, get_current_user
 
 router = APIRouter(prefix="/audit", tags=["Audit & Scanning"])
 
@@ -31,6 +32,7 @@ async def scan_package(
     category: str = Form("general"),
     custom_notes: Optional[str] = Form(None),
     db: Session = Depends(get_sync_db),
+    user: dict = Depends(require_role(["LMPC_OFFICER", "ADMIN"]))
 ):
     """
     Scans packaged commodity label(s), extracts spatial declarations, evaluates statutory metrology
@@ -221,7 +223,11 @@ class ScrapeRequest(BaseModel):
     category: str = "general"
 
 @router.post("/scrape")
-async def audit_ecommerce_url(request: ScrapeRequest, db: Session = Depends(get_sync_db)):
+async def audit_ecommerce_url(
+    request: ScrapeRequest, 
+    db: Session = Depends(get_sync_db),
+    user: dict = Depends(require_role(["LMPC_OFFICER", "ADMIN"]))
+):
     """
     Scrapes an e-commerce URL and performs cross-verification against product images.
     """
@@ -296,7 +302,36 @@ async def audit_ecommerce_url(request: ScrapeRequest, db: Session = Depends(get_
 
 
 @router.get("/history", response_model=List[dict])
-def get_scan_history(limit: int = 20, db: Session = Depends(get_sync_db)):
+def get_scan_history(
+    limit: int = 20, 
+    db: Session = Depends(get_sync_db),
+    user: dict = Depends(get_current_user)
+):
     """Retrieves previous inspection scan history records."""
     records = db.query(ScanRecord).order_by(ScanRecord.id.desc()).limit(limit).all()
     return [r.to_dict() for r in records]
+
+@router.delete("/history/{scan_id}")
+def delete_scan_record(
+    scan_id: str,
+    db: Session = Depends(get_sync_db),
+    user: dict = Depends(require_role(["ADMIN"]))
+):
+    """Deletes a specific inspection record (ADMIN ONLY)."""
+    record = db.query(ScanRecord).filter(ScanRecord.scan_id == scan_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Scan record not found.")
+    
+    db.delete(record)
+    db.commit()
+    return {"message": "Scan record deleted successfully."}
+
+@router.delete("/history")
+def clear_all_scan_records(
+    db: Session = Depends(get_sync_db),
+    user: dict = Depends(require_role(["ADMIN"]))
+):
+    """Clears all inspection records (ADMIN ONLY)."""
+    db.query(ScanRecord).delete()
+    db.commit()
+    return {"message": "All scan records have been cleared."}
