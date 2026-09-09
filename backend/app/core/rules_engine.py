@@ -664,6 +664,7 @@ def evaluate_statutory_compliance(
         "required_font_height_mm": required_font_height_mm,
         "compliance_score": final_score,
         "status": status,
+        "category": category,
         "estimated_compounding_fine_inr": max(2000, compounding_fine_inr) if len(violations) > 0 else 0,
         "rule_checklist": {
             "rule_6_mandatory_fields": rule_6_pass,
@@ -807,6 +808,7 @@ def evaluate_ecommerce_cross_verification(web_text: str, ocr_text: str, is_loose
         "estimated_compounding_fine_inr": compounding_fine_inr,
 
         "is_loose_commodity": is_loose_commodity,
+        "category": category,
         "discrepancies_detected": len(discrepancies) > 0,
         "discrepancies": discrepancies,
         "violations": violations,
