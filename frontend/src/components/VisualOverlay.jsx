@@ -38,7 +38,11 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
  };
  
  const bounding_boxes = currentSurface.bounding_boxes;
- const currentImageUrl = currentSurface.image_url;
+ let currentImageUrl = currentSurface.image_url;
+ if (currentImageUrl && currentImageUrl.startsWith('/uploads')) {
+   const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+   currentImageUrl = `${backendUrl}${currentImageUrl}`;
+ }
  const original_dimensions = currentSurface.original_dimensions;
 
  const clearanceBox = clearance_zone?.clearance_box;
@@ -56,24 +60,28 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
  <Eye className="w-5 h-5 text-brand-500" />
  <span>Spatial Visual Overlay & Typography</span>
  </h2>
- <p className="text-xs text-gray-500 mt-0.5">
- PDP Area: <span className="text-brand-500 font-semibold">{pdp_area_cm2} cm²</span> | Minimum Required Font Height: <span className="text-amber-400 font-semibold">{required_font_height_mm} mm</span>
- </p>
+ {!scanResult.url && (
+     <p className="text-xs text-gray-500 mt-0.5">
+     PDP Area: <span className="text-brand-500 font-semibold">{pdp_area_cm2} cm²</span> | Minimum Required Font Height: <span className="text-amber-400 font-semibold">{required_font_height_mm} mm</span>
+     </p>
+ )}
  </div>
 
  {/* Controls */}
  <div className="flex items-center space-x-2">
  {/* Clearance Toggle */}
- <button
- onClick={() => setShowClearance(!showClearance)}
- className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center space-x-1.5 transition ${
- showClearance
- ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
- : 'bg-white shadow-card border border-gray-200 text-gray-500 border-gray-200'
- }`}
- >
- <span>Rule 8 Clearance Zone</span>
- </button>
+ {!scanResult.url && (
+     <button
+     onClick={() => setShowClearance(!showClearance)}
+     className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center space-x-1.5 transition ${
+     showClearance
+     ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+     : 'bg-white shadow-card border border-gray-200 text-gray-500 border-gray-200'
+     }`}
+     >
+     <span>Rule 8 Clearance Zone</span>
+     </button>
+ )}
 
  {/* Boxes Toggle */}
  <button
@@ -128,7 +136,7 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
  surfaceIndex === idx ? 'border-brand-500/50 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'
  }`}
  >
- <img src={surface.image_url} alt={`Surface ${idx}`} className="h-16 w-16 object-cover" />
+ <img src={surface.image_url?.startsWith('/uploads') ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}${surface.image_url}` : surface.image_url} alt={`Surface ${idx}`} className="h-16 w-16 object-cover" />
  <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-center text-gray-900 py-0.5">
  {idx === 0 ? 'PDP (Front)' : `Side ${idx}`}
  </div>
@@ -137,18 +145,46 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
  </div>
  )}
 
+  {/* Cross-Verification Banner */}
+  {scanResult.url && (
+      <div className={`p-4 rounded-xl mb-4 flex items-start space-x-3 ${scanResult.discrepancies_detected ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          {scanResult.discrepancies_detected ? <AlertTriangle className="w-5 h-5 text-rose-500 mt-0.5" /> : <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />}
+          <div>
+              <h3 className={`text-sm font-bold ${scanResult.discrepancies_detected ? 'text-rose-800' : 'text-emerald-800'}`}>
+                  {scanResult.discrepancies_detected ? 'Deceptive Practice Detected!' : 'E-Commerce Cross-Verification Passed'}
+              </h3>
+              <p className={`text-xs mt-1 ${scanResult.discrepancies_detected ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {scanResult.discrepancies_detected 
+                      ? 'The mandatory declarations found in the webpage text do not match the physical labels detected in the product gallery images.' 
+                      : 'Webpage text aligns with the physical label image declarations.'}
+              </p>
+              {scanResult.discrepancies?.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                      {scanResult.discrepancies.map((d, i) => (
+                          <li key={i} className="text-xs text-rose-700 flex items-center space-x-1.5 font-mono">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                              <span>{d}</span>
+                          </li>
+                      ))}
+                  </ul>
+              )}
+          </div>
+      </div>
+  )}
+
  {/* Main Canvas Viewport */}
  <div className="relative bg-white rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center min-h-[460px] p-2">
- <div
- className="relative inline-block transition-transform duration-150 origin-center"
- style={{ transform: `scale(${zoom})` }}
- >
- {/* Background Packaging Image */}
- <img
- src={currentImageUrl}
- alt="Packaging inspection"
- className="max-h-[500px] w-auto rounded object-contain shadow-2xl block"
- />
+ {currentImageUrl ? (
+     <div
+     className="relative inline-block transition-transform duration-150 origin-center"
+     style={{ transform: `scale(${zoom})` }}
+     >
+     {/* Background Packaging Image */}
+     <img
+     src={currentImageUrl}
+     alt="Packaging inspection"
+     className="max-h-[500px] w-auto rounded object-contain shadow-2xl block"
+     />
 
  {/* SVG Overlay Layer */}
  <svg
@@ -157,7 +193,7 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
  preserveAspectRatio="none"
  >
  {/* Rule 8 Clearance Zone Mask */}
- {showClearance && clearanceBox && (
+ {!scanResult.url && showClearance && clearanceBox && (
  <g className="pointer-events-auto">
  <rect
  x={clearanceBox[0]}
@@ -216,15 +252,23 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
  fontFamily="sans-serif"
  fontWeight="bold"
  >
- {b.label?.slice(0, 14)} ({b.measured_height_mm}mm)
+ {b.label?.slice(0, 14)} {!scanResult.url && `(${b.measured_height_mm}mm)`}
  </text>
  </g>
  );
  })}
  </svg>
  </div>
+ ) : (
+ <div className="text-center text-gray-400">
+     <EyeOff className="w-10 h-10 mx-auto mb-3 opacity-50 text-gray-300" />
+     <p className="text-sm font-medium text-gray-500">No Product Images Found</p>
+     <p className="text-xs mt-1">The scraper could not extract any gallery images from this URL.</p>
+ </div>
+ )}
 
  {/* Legend */}
+ {!scanResult.url && (
  <div className="absolute bottom-4 right-4 z-20 bg-white shadow-card border-2 border-gray-200 backdrop-blur border border-gray-200/50 rounded-lg p-2.5 shadow-xl flex flex-col space-y-1.5 pointer-events-none">
  <div className="flex items-center space-x-2">
  <div className="w-2.5 h-2.5 rounded-sm bg-green-500/20 border border-green-500"></div>
@@ -235,10 +279,11 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
  <span className="text-[10px] text-gray-700 font-medium">Mandatory (Fail)</span>
  </div>
  <div className="flex items-center space-x-2">
- <div className="w-2.5 h-2.5 rounded-sm bg-yellow-500/20 border border-yellow-500"></div>
+ <div className="w-2.5 h-2.5 rounded-sm bg-amber-400/20 border border-amber-400"></div>
  <span className="text-[10px] text-gray-700 font-medium">Generic Text (No Req)</span>
  </div>
  </div>
+ )}
  </div>
 
  {/* Selected Box Inspection Details */}
@@ -262,7 +307,7 @@ export default function VisualOverlay({ scanResult, imageUrl }) {
  <p className="text-xs text-gray-700 font-mono">"{selectedBox.text}"</p>
  )}
 
- {selectedBox.measured_height_mm && (
+ {!scanResult.url && selectedBox.measured_height_mm && (
  <p className="text-xs text-gray-500">
  Measured Height: <span className="text-gray-900 font-semibold">{selectedBox.measured_height_mm} mm</span> | Statutory Minimum: <span className="text-amber-400 font-semibold">{selectedBox.required_height_mm || required_font_height_mm} mm</span>
  </p>
