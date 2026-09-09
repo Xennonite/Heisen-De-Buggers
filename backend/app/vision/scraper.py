@@ -9,14 +9,22 @@ async def scrape_ecommerce_listing(url: str):
     """
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+        # Use a realistic User-Agent to prevent anti-bot blocking (e.g. Amazon 404s)
+        page = await browser.new_page(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            viewport={"width": 1920, "height": 1080}
+        )
         # Use domcontentloaded instead of networkidle, as e-commerce sites often have long-polling trackers
         await page.goto(url, wait_until="domcontentloaded", timeout=60000)
         # Scroll down slightly to trigger lazy loading of product images
-        await page.evaluate("window.scrollBy(0, 800)")
+        await page.evaluate("window.scrollBy(0, 1500)")
         # Give JS a moment to render the product details and lazy-load images
         await page.wait_for_timeout(3000)
-        await page.evaluate("window.scrollBy(0, -800)") # Scroll back up for the screenshot
+        
+        # Extract rendered text directly from the browser's DOM (ignores hidden junk)
+        visible_text = await page.evaluate("document.body.innerText")
+        
+        await page.evaluate("window.scrollTo(0, 0)") # Scroll back up for the screenshot
         await page.wait_for_timeout(1000)
         
         # Take a screenshot to show the overall page
@@ -25,10 +33,6 @@ async def scrape_ecommerce_listing(url: str):
         await browser.close()
 
     soup = BeautifulSoup(html_content, "html.parser")
-    # Get text but remove scripts and styles
-    for script in soup(["script", "style"]):
-        script.extract()
-    visible_text = soup.get_text(separator=" ", strip=True)
     
     # Extract metadata
     metadata = []

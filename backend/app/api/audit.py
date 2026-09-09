@@ -221,7 +221,7 @@ class ScrapeRequest(BaseModel):
     category: str = "general"
 
 @router.post("/scrape")
-async def audit_ecommerce_url(request: ScrapeRequest):
+async def audit_ecommerce_url(request: ScrapeRequest, db: Session = Depends(get_sync_db)):
     """
     Scrapes an e-commerce URL and performs cross-verification against product images.
     """
@@ -261,11 +261,36 @@ async def audit_ecommerce_url(request: ScrapeRequest):
 
     audit_results["url"] = request.url
     audit_results["scan_id"] = scan_id
+    audit_results["timestamp"] = datetime.now(timezone.utc).isoformat()
+    
     if saved_images:
         audit_results["surfaces"] = saved_images
         audit_results["image_url"] = saved_images[0]["image_url"]
         audit_results["original_dimensions"] = saved_images[0]["original_dimensions"]
         audit_results["bounding_boxes"] = saved_images[0]["bounding_boxes"]
+
+    # Persist to Database
+    try:
+        record = ScanRecord(
+            scan_id=scan_id,
+            timestamp=datetime.now(timezone.utc),
+            package_height_mm=0.0,
+            package_width_mm=0.0,
+            package_depth_mm=0.0,
+            container_type="e-commerce",
+            category=request.category,
+            pdp_area_cm2=0.0,
+            required_font_height_mm=0.0,
+            compliance_score=audit_results["compliance_score"],
+            status=audit_results["status"],
+            estimated_compounding_fine_inr=audit_results["estimated_compounding_fine_inr"],
+            image_filename=os.path.basename(saved_images[0]["image_url"]) if saved_images else None,
+            audit_data_json=json.dumps(audit_results),
+        )
+        db.add(record)
+        db.commit()
+    except Exception as e:
+        print(f"DB persistence warning: {e}")
 
     return audit_results
 
