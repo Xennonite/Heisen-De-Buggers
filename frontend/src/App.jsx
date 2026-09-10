@@ -178,7 +178,7 @@ title="Collapse sidebar"
             />
           </div>
           {isAdmin && history.length > 0 && (
-            <div className="flex justify-end space-x-3 pr-1 pt-1">
+            <div className="flex justify-between items-center px-1 pt-1">
               {selectionMode ? (
                 <>
                   <button onClick={() => { setSelectionMode(false); setSelectedScans([]); }} className="text-[10px] text-gray-400 hover:text-white flex items-center space-x-1 transition">
@@ -288,7 +288,7 @@ title="Collapse sidebar"
 }
 
 // ─── Dossier Tabs ──────────────────────────────────────────────────────────
-function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, isManufacturer }) {
+function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, isManufacturer, onModeChange }) {
   const initialTab = isManufacturer ? (currentScan ? 'canvas' : 'none') : 'intake';
   const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -366,7 +366,7 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, i
         {/* Intake / Modify Parameters (Kept mounted to preserve state) */}
         {!isManufacturer && (
           <div className={`h-full overflow-y-auto p-6 ${activeTab === 'intake' ? 'block' : 'hidden'}`}>
-            <IngestionForm onScanSubmit={onScanSubmit} isScanning={isScanning} currentScan={currentScan} />
+            <IngestionForm onScanSubmit={onScanSubmit} isScanning={isScanning} currentScan={currentScan} onModeChange={onModeChange} />
           </div>
         )}
 
@@ -448,6 +448,7 @@ function DashboardContent({ user }) {
   const [isScanning, setIsScanning] = useState(false);
   const [isMpeModalOpen, setIsMpeModalOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [intakeMode, setIntakeMode] = useState('physical');
 
   const handleScanSubmit = async (payload, mode = 'physical') => {
     try {
@@ -507,7 +508,7 @@ function DashboardContent({ user }) {
 
 {/* Right: MPE Test + Rule Engine */}
 <div className="ml-auto flex items-center space-x-4">
-{(!currentScan || !currentScan.url) && (
+{(!currentScan ? intakeMode !== 'url' : !currentScan.url) && (
 <button
 onClick={() => setIsMpeModalOpen(true)}
 className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell-700 bg-shell-800 text-shell-600 hover:text-white hover:border-shell-600 text-[11px] font-medium transition"
@@ -558,6 +559,7 @@ className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell
             isScanning={isScanning}
             onScanSubmit={handleScanSubmit}
             isManufacturer={isManufacturer}
+            onModeChange={setIntakeMode}
           />
         </main>
       </div>
