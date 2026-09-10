@@ -292,26 +292,26 @@ MetroVerity is engineered as a decoupled, high-performance web platform combinin
 
 ```mermaid
 graph TD
-    subgraph Frontend ["React 18 + TailwindCSS Client"]
-        UI["Ingestion Form & Presets"] --> API_REQ["Axios API Client"]
-        API_RESP["Scan Response JSON"] --> CANVAS["SVG Visual Overlay Canvas"]
-        API_RESP --> CHECKLIST["Compliance Rule Checklist"]
-        API_RESP --> GAUGE["Score & Penalty Card"]
-        API_RESP --> EXPORTER["ReportLab / Docx Exporter"]
-        MODAL["7th Schedule Physical MPE Modal"] --> API_REQ
+    subgraph Frontend [React 18 and TailwindCSS Client]
+        UI[Ingestion Form and Presets] --> API_REQ[Axios API Client]
+        API_RESP[Scan Response JSON] --> CANVAS[SVG Visual Overlay Canvas]
+        API_RESP --> CHECKLIST[Compliance Rule Checklist]
+        API_RESP --> GAUGE[Score and Penalty Card]
+        API_RESP --> EXPORTER[ReportLab or Docx Exporter]
+        MODAL[7th Schedule Physical MPE Modal] --> API_REQ
     end
 
-    subgraph Backend ["FastAPI 3.12 Backend Core"]
-        API_REQ --> ROUTER["FastAPI API Router"]
-        ROUTER --> SCRAPER["Playwright Headless E-Commerce Scraper"]
-        ROUTER --> PREPROC["OpenCV Preprocessing & Perspective Warp"]
-        ROUTER --> SCALER["Spatial Metric Scaler S = px/mm"]
-        ROUTER --> OCR["OCR Wrapper & Pyzbar Barcode Decoder"]
-        ROUTER --> CLEARANCE["Rule 8 Clearance Mask Collision Engine"]
-        ROUTER --> RULES["Statutory NLP & Metrology Rule Engine"]
-        ROUTER --> MPE["First Schedule MPE & Rule 19(6) Statistical Engine"]
-        ROUTER --> PDF_GEN["ReportLab PDF & python-docx Generator"]
-        ROUTER --> DB[("SQLite Database / SQLAlchemy")]
+    subgraph Backend [FastAPI 3.12 Backend Core]
+        API_REQ --> ROUTER[FastAPI API Router]
+        ROUTER --> SCRAPER[Playwright Headless E-Commerce Scraper]
+        ROUTER --> PREPROC[OpenCV Preprocessing and Perspective Warp]
+        ROUTER --> SCALER[Spatial Metric Scaler S equals px per mm]
+        ROUTER --> OCR[OCR Wrapper and Pyzbar Barcode Decoder]
+        ROUTER --> CLEARANCE[Rule 8 Clearance Mask Collision Engine]
+        ROUTER --> RULES[Statutory NLP and Metrology Rule Engine]
+        ROUTER --> MPE[First Schedule MPE and Rule 19 Statistical Engine]
+        ROUTER --> PDF_GEN[ReportLab PDF and python-docx Generator]
+        ROUTER --> DB[(SQLite Database and SQLAlchemy)]
     end
 ```
 
