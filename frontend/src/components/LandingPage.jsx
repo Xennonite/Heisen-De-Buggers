@@ -1,43 +1,50 @@
 import React from 'react';
 import { SignIn } from '@clerk/clerk-react';
+import InteractiveBackground from './InteractiveBackground';
 
 export default function LandingPage({ onDevLogin, isDev }) {
   return (
     <div className="relative min-h-screen bg-parchment flex items-center justify-center overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 z-0">
-        <div className="bg-wash"></div>
+        <div className="bg-wash-warm"></div>
         {/* We use an img tag with the float animation */}
         <div className="absolute inset-0 flex items-center justify-center opacity-80 mix-blend-multiply">
           <img 
-            src="/bg-motif.jpg" 
+            src="/login-bg.jpg" 
             alt="Government Motif" 
-            className="object-cover w-full h-full animate-float max-w-5xl mx-auto rounded-[80px]"
-            style={{ animationDuration: '8s' }}
+            className="object-cover w-full h-full animate-float max-w-[120rem] mx-auto"
+            style={{ animationDuration: '10s' }}
           />
         </div>
       </div>
+      
+      {/* Interactive Golden Particles */}
+      <InteractiveBackground density={150} speed={0.4} glowColor="#ecda98" />
 
       {/* Main Content Container */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center gap-16">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-16">
         
-        {/* Left Side: Editorial Typography */}
-        <div className="flex-1 text-offBlack">
-          <h2 className="text-sm tracking-[0.2em] font-mono uppercase text-smoke mb-6">
+        {/* Left Side: Branding */}
+        <div className="flex-1 md:pr-12 text-center md:text-left bg-white/30 backdrop-blur-xl p-10 md:p-12 rounded-[40px] border border-white/40 shadow-2xl">
+          <div className="flex justify-center md:justify-start mb-8">
+            <img src="/bg-motif.jpg" alt="MetroVerity Logo" className="w-24 h-24 rounded-full border-2 border-white/60 shadow-lg object-cover" />
+          </div>
+          <h2 className="text-sm font-mono text-offBlack uppercase tracking-[0.2em] mb-4 opacity-80 font-medium">
             Government of India
           </h2>
-          <h1 className="font-serif text-6xl md:text-8xl leading-[0.9] tracking-tight mb-8">
+          <h1 className="font-serif text-6xl md:text-8xl text-offBlack mb-6 tracking-tight drop-shadow-md">
             MetroVerity
           </h1>
-          <p className="font-mono text-lg md:text-xl text-graphite max-w-md leading-relaxed">
+          <p className="font-mono text-lg md:text-xl text-offBlack max-w-md leading-relaxed drop-shadow-sm font-medium">
             Statutory Enforcement Platform for The Legal Metrology Act, 2011.
           </p>
         </div>
 
         {/* Right Side: Authentication */}
         <div className="w-full max-w-md">
-          <div className="bg-white/80 backdrop-blur-3xl p-10 rounded-[40px] border border-white shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
-            <h3 className="font-serif text-3xl mb-8 text-center text-offBlack">Officer Portal</h3>
+          <div className="bg-white/40 backdrop-blur-2xl p-10 rounded-[40px] border border-white/60 shadow-[0_16px_40px_rgba(0,0,0,0.1)]">
+            <h3 className="font-serif text-3xl mb-8 text-center text-offBlack drop-shadow-sm">Officer Portal</h3>
             <div className="flex justify-center">
               {isDev ? (
                 <button 

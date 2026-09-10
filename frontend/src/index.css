@@ -41,16 +41,32 @@ input[type="number"] {
   -moz-appearance: textfield; /* Firefox */
 }
 
-/* Atmospheric wash utilities */
-.bg-wash {
-  background: radial-gradient(circle at top left, rgba(160, 181, 235, 0.4), transparent 40%),
-              radial-gradient(circle at bottom right, rgba(167, 252, 205, 0.4), transparent 40%),
-              radial-gradient(circle at center, rgba(236, 218, 152, 0.2), transparent 50%);
-  filter: blur(40px);
+/* Authentic Monad Gradients */
+.bg-wash-warm {
+  background: radial-gradient(circle at top left, rgba(255, 148, 115, 0.8), transparent 50%), /* Coral */
+              radial-gradient(circle at bottom right, rgba(236, 218, 152, 0.8), transparent 50%), /* Gold */
+              radial-gradient(circle at center, rgba(243, 122, 10, 0.6), transparent 60%); /* Crimson */
+  filter: blur(75px);
   position: absolute;
   inset: -100px;
   z-index: -1;
   pointer-events: none;
+}
+
+.bg-wash-cool {
+  background: radial-gradient(circle at top right, rgba(160, 181, 235, 0.6), transparent 60%), /* Sky Blue */
+              radial-gradient(circle at bottom left, rgba(167, 252, 205, 0.6), transparent 60%); /* Mint */
+  filter: blur(50px);
+  position: absolute;
+  inset: -50px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.group:hover .bg-wash-cool {
+  opacity: 1;
 }
 
 /* Override autofill yellow */
