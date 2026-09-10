@@ -8,7 +8,29 @@ This manual provides step-by-step guidance on how to perform label inspections, 
 
 ---
 
-## 2. Dashboard Interface Tour
+## 2. Authentication, Roles & Secrets
+
+MetroVerity uses **Clerk** for robust, enterprise-grade authentication and JSON Web Token (JWT) identity management, and strictly enforces Role-Based Access Control (RBAC) across the FastAPI backend.
+
+### Setting Up Authentication (Local Dev)
+1. Register for a free Clerk account at clerk.com.
+2. In the root `frontend/.env.local`, set your publishable key:
+   `VITE_CLERK_PUBLISHABLE_KEY=pk_test_...`
+3. In the root `backend/.env`, set your secret key:
+   `CLERK_SECRET_KEY=sk_test_...`
+
+### Defining User Roles
+The platform currently supports three strictly verified roles:
+- **`ADMIN`**: Can run physical scans, e-commerce scrapes, MPE tests, view history, export reports, and strictly delete/clear inspection logs from the SQLite database.
+- **`LMPC_OFFICER`**: Can run scans and view history, but cannot tamper with or delete logs.
+- **`MANUFACTURER`**: Read-only profile for external transparency; can view historical logs and export reports, but cannot conduct enforcement scans.
+
+**To assign a role:** Go to your Clerk Dashboard > Users > Select the user > Scroll down to Public Metadata and inject the JSON payload:
+`{"role": "LMPC_OFFICER"}`
+
+---
+
+## 3. Dashboard Interface Tour
 
 When you open MetroVerity (`http://localhost:5173`), the dashboard presents a clean, high-contrast, inspection-grade interface divided into key operational zones:
 
@@ -39,7 +61,7 @@ When you open MetroVerity (`http://localhost:5173`), the dashboard presents a cl
 
 ---
 
-## 3. Step-by-Step Inspection Workflow
+## 4. Step-by-Step Inspection Workflow
 
 ### Step 1: Ingestion & Physical Dimension Calibration
 

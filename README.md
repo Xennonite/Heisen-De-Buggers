@@ -31,6 +31,11 @@ MetroVerity is an automated Legal Metrology compliance verification and statutor
 - **Compounding Fee Calculator:** Auto-assesses statutory fines (₹2,000 to ₹50,000) based on Sections 29 & 36, adapting penalties specifically for E-commerce violations.
 - **Statutory Notice Generation:** Auto-populates Seventh Schedule Forms A & B and seals them as cryptographically signed, Tamper-Evident PDFs.
 
+### 5. Role-Based Access Control & Security
+- **Clerk Identity Management:** Secure authentication wrapper protecting all inspection endpoints.
+- **Granular RBAC:** Supports strictly mapped `ADMIN`, `LMPC_OFFICER`, and `MANUFACTURER` user profiles.
+- **Statutory Audit Logs:** Immutable SQLite tracking of all scans, scraped e-commerce URLs, and penalty records, accessible based on clearance level.
+
 ## 🛠 Technology Stack
 
 | Layer | Technologies & Frameworks | Role in MetroVerity |
@@ -41,6 +46,7 @@ MetroVerity is an automated Legal Metrology compliance verification and statutor
 | **Backend & Rule Engine** | Python, FastAPI | Lightning-fast asynchronous REST API handling computer vision tasks and the NLP rule engine. |
 | **Frontend & Inspector UI** | React.js, TailwindCSS | High-contrast dashboard featuring interactive bounding-box overlays, live inspection feeds, and manual weight entry. |
 | **Database & Storage** | PostgreSQL (JSONB), MinIO / S3 | Relational metadata tracking, inspection logs, and secure object storage for full-resolution raw packaging photos. |
+| **Authentication & IAM** | Clerk, PyJWT, Cryptography | Headless auth, JWKS signature verification, and React UI enclave protection. |
 | **Security & Export** | ReportLab, PyMuPDF, OpenSSL | Statutory Seventh Schedule (Forms A & B) generation, SHA-256 evidence hashing, and digital signature sealing. |
 
 ## ⚡ Quick Start & Setup Guide
