@@ -398,11 +398,11 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan, i
         <button
           type="submit"
           disabled={isScanning}
-          className="w-full py-3 px-4 rounded-xl font-semibold text-xs text-gray-900 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-500 hover:to-brand-600 shadow-lg shadow-brand-500/20 transition flex items-center justify-center space-x-2 disabled:opacity-50"
+          className="w-full py-3.5 px-4 rounded-xl font-mono text-[11px] font-semibold text-white bg-lakeBlue hover:bg-brand-600 shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2 disabled:opacity-50"
         >
           {isScanning ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin text-gray-900" />
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
               <span>Analyzing Metrology & Statutory Rules...</span>
             </>
           ) : (

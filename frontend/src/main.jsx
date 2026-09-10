@@ -28,7 +28,7 @@ if (DEV_ROLE) {
         appearance={{
           layout: {
             unsafe_disableDevelopmentModeWarnings: true,
-          },
+          }
         }}
       >
         <App />

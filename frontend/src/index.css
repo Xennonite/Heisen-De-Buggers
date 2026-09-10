@@ -78,3 +78,41 @@ input:-webkit-autofill:active{
     -webkit-text-fill-color: #242424 !important;
     transition: background-color 5000s ease-in-out 0s;
 }
+
+/* Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Scale down Clerk UserButton popover without FOUC */
+.cl-userButtonPopoverCard {
+  transform: scale(0.9) !important;
+  transform-origin: top right !important;
+  border-radius: 1rem !important;
+}
+
+/* Hide Clerk 'Last used' badge and similar elements */
+.cl-badge,
+.cl-formFieldAction,
+[class*="cl-badge"],
+[class*="badge__lastUsed"],
+[class*="badge_lastUsed"],
+[data-localization-key*="lastUsed"] {
+  display: none !important;
+}
+
+/* Hardcore removal of the Last Used badge: hide any span inside the label row that isn't the label */
+.cl-formFieldLabelRow > :not(label) {
+  display: none !important;
+}

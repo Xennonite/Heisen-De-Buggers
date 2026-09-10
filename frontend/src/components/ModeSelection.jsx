@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Layers, Globe, ArrowRight } from 'lucide-react';
-import InteractiveBackground from './InteractiveBackground';
 
 export default function ModeSelection({ onSelectMode }) {
   const modes = [
@@ -9,7 +8,7 @@ export default function ModeSelection({ onSelectMode }) {
       title: 'Single SKU Scan',
       description: 'Run spatial and statutory validation on a single physical product package.',
       icon: Box,
-      color: 'bg-parchment',
+      color: 'bg-slate-200',
       border: 'border-ash'
     },
     {
@@ -17,7 +16,7 @@ export default function ModeSelection({ onSelectMode }) {
       title: 'Bulk MPE Test',
       description: 'First Schedule statistical sampling for warehouse lot inspections.',
       icon: Layers,
-      color: 'bg-parchment',
+      color: 'bg-slate-200',
       border: 'border-ash'
     },
     {
@@ -25,25 +24,23 @@ export default function ModeSelection({ onSelectMode }) {
       title: 'E-Commerce Crawler',
       description: 'Verify digital compliance against Rule 6(10) on e-commerce portals.',
       icon: Globe,
-      color: 'bg-parchment',
+      color: 'bg-slate-200',
       border: 'border-ash'
     }
   ];
 
   return (
-    <div className="relative min-h-screen bg-parchment flex items-center justify-center p-6 overflow-hidden">
+    <div className="relative min-h-screen bg-slate-200 flex items-center justify-center p-6 overflow-hidden">
       
-      {/* Background Gradient & Interactive Golden Particles */}
-      <div className="absolute inset-0 z-0">
-        <div className="bg-wash-warm opacity-70"></div>
-      </div>
-      <InteractiveBackground density={300} speed={0.4} glowColor="#ecda98" />
+      {/* Interactive Particles */}
+      <div className="absolute inset-0 z-0 bg-slate-200"></div>
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto">
-        <div className="text-center mb-16 flex flex-col items-center">
-          <img src="/logo.jpg" alt="MetroVerity Seal" className="w-28 h-28 rounded-full border-2 border-white/60 shadow-lg object-cover mb-6" />
-          <h1 className="font-serif text-5xl text-offBlack mb-4 drop-shadow-sm">MetroVerity</h1>
-          <p className="font-mono text-graphite text-lg">Select an operational mode to begin statutory enforcement.</p>
+
+      <div className="relative z-10 w-full max-w-4xl mx-auto">
+        <div className="text-center mb-12 flex flex-col items-center">
+          <img src="/logo.jpg" alt="MetroVerity Seal" className="w-20 h-20 rounded-full border-2 border-white/60 shadow-lg object-cover mb-6" />
+          <h1 className="font-serif text-4xl text-offBlack mb-4 drop-shadow-sm">MetroVerity</h1>
+          <p className="font-mono text-graphite text-sm">Select an operational mode to begin statutory enforcement.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -53,17 +50,17 @@ export default function ModeSelection({ onSelectMode }) {
               <button
                 key={mode.id}
                 onClick={() => onSelectMode(mode.id)}
-                className={`group relative text-left p-10 rounded-card border ${mode.border} ${mode.color} transition-all duration-300 hover:-translate-y-1 overflow-hidden`}
+                className={`group relative text-left p-8 rounded-card border ${mode.border} ${mode.color} transition-all duration-300 hover:-translate-y-1 overflow-hidden`}
               >
                 {/* Reveal gradient wash on hover */}
                 <div className="bg-wash-cool"></div>
                 
-                <div className="w-12 h-12 rounded-full border border-ash flex items-center justify-center bg-white mb-8">
+                <div className="w-10 h-10 rounded-full border border-ash flex items-center justify-center bg-white mb-8">
                   <Icon className="w-5 h-5 text-offBlack" />
                 </div>
                 
-                <h3 className="font-serif text-2xl text-offBlack mb-4">{mode.title}</h3>
-                <p className="font-mono text-sm text-graphite mb-10 leading-relaxed">
+                <h3 className="font-serif text-xl text-offBlack mb-4">{mode.title}</h3>
+                <p className="font-mono text-xs text-graphite mb-10 leading-relaxed">
                   {mode.description}
                 </p>
 

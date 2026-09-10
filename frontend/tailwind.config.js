@@ -52,10 +52,8 @@ export default {
         }
       },
       borderRadius: {
-        'card': '40px',
+        'card': '1rem',
         'pill': '9999px',
-        'lg': '16px', // Overriding generic radius to fit better if used
-        'md': '16px',
       },
       boxShadow: {
         'card': 'none',

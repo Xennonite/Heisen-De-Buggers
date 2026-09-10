@@ -22,9 +22,9 @@ function LiveClock() {
   }, []);
 
   return (
-    <div className="flex items-center space-x-2 px-3 py-1.5 rounded-pill border border-ash bg-white/50 text-graphite hover:text-offBlack transition cursor-default">
-      <Clock className="w-3.5 h-3.5" />
-      <span className="text-xs font-medium font-mono uppercase tracking-wide">{time.toLocaleString()}</span>
+    <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border border-ash bg-white/50 text-smoke hover:text-graphite transition cursor-default">
+      <Clock className="w-3 h-3" />
+      <span className="text-[10px] font-medium font-mono tracking-wide">{time.toLocaleString()}</span>
     </div>
   );
 }
@@ -104,11 +104,11 @@ function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collap
 
   return (
     <aside
-      className={`flex-shrink-0 flex flex-col bg-parchment border-r border-ash transition-all duration-300 ${
+      className={`flex-shrink-0 flex flex-col bg-white rounded-2xl shadow-md border border-ash/50 m-4 mr-2 transition-all duration-300 overflow-hidden ${
         collapsed ? 'w-16' : 'w-72'
       }`}
     >
-      <div className="flex items-center justify-between px-4 py-4 border-b border-ash">
+      <div className="flex items-center justify-between px-4 py-4">
         {!collapsed && (
           <span className="text-sm font-serif text-offBlack">
             Inspection Log
@@ -117,7 +117,7 @@ function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collap
         {collapsed ? (
           <button
             onClick={onToggleCollapse}
-            className="w-full flex justify-center py-1.5 rounded-pill border border-transparent hover:border-ash hover:bg-white/50 text-graphite hover:text-offBlack transition"
+            className="w-full flex justify-center py-1.5 rounded-xl border border-transparent hover:border-ash hover:bg-white/50 text-graphite hover:text-offBlack transition"
             title="Expand sidebar"
           >
             <ChevronRight className="w-4 h-4" />
@@ -125,7 +125,7 @@ function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collap
         ) : (
           <button
             onClick={onToggleCollapse}
-            className="p-1.5 rounded-pill border border-transparent hover:border-ash hover:bg-white/50 text-graphite hover:text-offBlack transition flex-shrink-0"
+            className="p-1.5 rounded-xl border border-transparent hover:border-ash hover:bg-white/50 text-graphite hover:text-offBlack transition flex-shrink-0"
             title="Collapse sidebar"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -138,23 +138,23 @@ function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collap
           <button
             onClick={onBackToModes}
             title="Change Inspection Mode"
-            className={`flex items-center justify-center space-x-2 rounded-pill border border-ash bg-white hover:bg-periwinkle text-offBlack text-xs font-mono uppercase tracking-wide transition flex-shrink-0 ${
+            className={`flex items-center justify-center space-x-2 rounded-xl border border-ash bg-white hover:bg-periwinkle text-offBlack text-xs font-mono transition flex-shrink-0 ${
               collapsed ? 'w-10 h-10' : 'py-2.5 w-full'
             }`}
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
-            {!collapsed && <span>Change Mode</span>}
+            {!collapsed && <span>Change mode</span>}
           </button>
           
           <button
             onClick={onNewIntake}
             title="New Inspection"
-            className={`flex items-center justify-center space-x-2 rounded-pill bg-lakeBlue hover:bg-brand-600 text-white text-xs font-mono uppercase tracking-wide transition flex-shrink-0 ${
+            className={`flex items-center justify-center space-x-2 rounded-xl bg-lakeBlue hover:bg-brand-600 text-white text-xs font-mono transition flex-shrink-0 ${
               collapsed ? 'w-10 h-10' : 'py-2.5 w-full'
             }`}
           >
             <Plus className="w-4 h-4 flex-shrink-0" />
-            {!collapsed && <span>New Inspection</span>}
+            {!collapsed && <span>New inspection</span>}
           </button>
         </div>
       )}
@@ -168,7 +168,7 @@ function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collap
               placeholder="Search cases..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-ash rounded-pill pl-9 pr-3 py-2 text-xs font-mono text-offBlack placeholder-smoke focus:outline-none focus:border-lakeBlue"
+              className="w-full bg-white border border-ash rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-offBlack placeholder-smoke focus:outline-none focus:border-lakeBlue"
             />
           </div>
           {isAdmin && history.length > 0 && (
@@ -257,15 +257,15 @@ function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collap
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-mono text-offBlack font-semibold truncate">
+                        <span className="text-xs font-mono text-offBlack font-semibold truncate">
                           #{item.scan_id}
                         </span>
                         {!selectionMode && statusIcon(item.status)}
                       </div>
-                      <div className="text-[11px] font-mono uppercase tracking-wide text-graphite truncate">
+                      <div className="text-[10px] font-mono uppercase tracking-wide text-graphite truncate">
                         {item.category} {item.timestamp && ` • ${new Date(item.timestamp).toLocaleDateString()}`}
                       </div>
-                      <div className="text-[11px] font-mono text-lakeBlue font-semibold mt-0.5">Score: {item.compliance_score}%</div>
+                      <div className="text-[10px] font-mono text-lakeBlue font-semibold mt-0.5">Score: {item.compliance_score}%</div>
                     </div>
                   </div>
                 )}
@@ -312,31 +312,33 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, i
   ].filter(t => (t.always || !!currentScan) && !(isManufacturer && t.hideForManufacturer));
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Tab strip - hidden if there's no scan to show, but kept if editing parameters */}
+    <div className="flex flex-col h-full bg-transparent">
+      {/* Tab strip - Full Width Segmented Control */}
       {visibleTabs.length > 1 && (
-        <div className="flex-shrink-0 flex w-full bg-parchment border-b border-ash p-2 space-x-2">
-          {visibleTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-pill text-[11px] font-mono uppercase tracking-widest transition-all ${
-                  isActive
-                    ? 'bg-offBlack text-white shadow-md'
-                    : 'bg-transparent text-graphite hover:bg-white border border-transparent hover:border-ash'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{tab.label}</span>
-                {tab.dot && currentScan && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-lakeBlue flex-shrink-0 ml-2" />
-                )}
-              </button>
-            );
-          })}
+        <div className="flex-shrink-0 flex w-full pt-4 pb-2 px-4 lg:px-6 z-10">
+          <div className="flex w-full bg-white/60 backdrop-blur-xl p-1.5 rounded-2xl shadow-sm border border-ash/20 space-x-1">
+            {visibleTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl text-[13px] font-sans font-medium transition-all duration-300 ${
+                    isActive
+                      ? 'bg-white text-lakeBlue shadow-sm border border-ash/10'
+                      : 'bg-transparent text-smoke hover:text-offBlack hover:bg-white/30'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                  {tab.dot && currentScan && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-lakeBlue flex-shrink-0 ml-1.5" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -344,7 +346,7 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, i
       <div className="flex-1 overflow-hidden relative">
         {isManufacturer && !currentScan && (
            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white text-smoke p-6">
-               <div className="text-center p-10 bg-parchment rounded-card border border-ash max-w-sm w-full">
+               <div className="text-center p-10 bg-white shadow-xl rounded-card border border-ash max-w-sm w-full">
                    <Box className="w-12 h-12 text-ash mx-auto mb-6" />
                    <h2 className="text-2xl font-serif text-offBlack mb-2">Manufacturer Portal</h2>
                    <p className="text-xs font-mono text-graphite leading-relaxed">Select an inspection log from the sidebar to view detailed compliance results and reports.</p>
@@ -353,7 +355,7 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, i
         )}
 
         {!isManufacturer && (
-          <div className={`h-full overflow-y-auto p-6 lg:p-10 ${activeTab === 'intake' ? 'block' : 'hidden'}`}>
+          <div className={`h-full overflow-y-auto p-4 lg:p-6 ${activeTab === 'intake' ? 'block' : 'hidden'}`}>
             <div className="max-w-4xl mx-auto">
               <IngestionForm onScanSubmit={onScanSubmit} isScanning={isScanning} currentScan={currentScan} initialMode={appMode} />
             </div>
@@ -361,13 +363,13 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, i
         )}
 
         {activeTab === 'canvas' && (
-          <div className="h-full overflow-y-auto p-6 lg:p-10 bg-surface-50">
+          <div className="h-full overflow-y-auto p-4 lg:p-6">
             <VisualOverlay scanResult={currentScan} imageUrl={currentImageUrl} />
           </div>
         )}
 
         {activeTab === 'report' && (
-          <div className="h-full overflow-y-auto p-6 lg:p-10 space-y-8 bg-surface-50">
+          <div className="h-full overflow-y-auto p-4 lg:p-6 space-y-8">
             <div className="max-w-5xl mx-auto space-y-8">
               {currentScan ? (
                 <>
@@ -457,7 +459,7 @@ function AppFlow({ user, isDev }) {
             <span className="text-[9px] font-mono text-lakeBlue uppercase tracking-wider">{role.replace('_', ' ')}</span>
           </div>
           {isDev ? (
-            <button onClick={() => setView('LANDING')} className="w-10 h-10 rounded-full bg-parchment flex items-center justify-center text-sm font-serif font-bold text-offBlack border border-ash">
+            <button onClick={() => setView('LANDING')} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-sm font-serif font-bold text-offBlack border border-ash/50">
               {user?.fullName?.charAt(0) || 'D'}
             </button>
           ) : (
@@ -514,15 +516,12 @@ function DashboardContent({ user, appMode, onBackToModes }) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-parchment overflow-hidden font-mono relative z-0">
+    <div className="h-screen flex flex-col bg-slate-200 overflow-hidden font-mono relative z-0">
       
-      {/* Background ambient golden wash */}
-      <div className="absolute inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="bg-wash-warm opacity-100"></div>
-      </div>
+
 
       {/* ── Titlebar ── */}
-      <div className="flex-shrink-0 h-16 flex items-center px-6 border-b border-ash bg-parchment relative z-10">
+      <div className="flex-shrink-0 h-16 flex items-center px-6 bg-transparent relative z-10">
         <div className="mr-auto flex items-center z-10">
           <LiveClock />
         </div>
@@ -540,6 +539,12 @@ function DashboardContent({ user, appMode, onBackToModes }) {
         </div>
 
         <div className="ml-auto flex items-center space-x-6 z-10">
+          {appMode && (
+            <span className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-white border border-ash/40 shadow-sm text-[10px] font-mono text-graphite">
+              <span className="w-1.5 h-1.5 rounded-full bg-lakeBlue" />
+              <span>{{ single: 'Single SKU', bulk: 'Bulk MPE', web: 'E-Commerce' }[appMode] || appMode}</span>
+            </span>
+          )}
           <span className="flex items-center space-x-2 text-[10px] font-mono uppercase tracking-widest text-pass">
             <span className="w-2 h-2 rounded-full bg-pass animate-pulse shadow-[0_0_8px_rgba(22,163,74,0.5)]" />
             <span>Rule Engine Online</span>
@@ -575,7 +580,7 @@ function DashboardContent({ user, appMode, onBackToModes }) {
           onBackToModes={onBackToModes}
         />
 
-        <main className="flex-1 overflow-hidden flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.03)] z-0">
+        <main className="flex-1 overflow-hidden flex flex-col bg-transparent z-0">
           <DossierTabs
             currentScan={currentScan}
             currentImageUrl={currentImageUrl}
@@ -588,7 +593,7 @@ function DashboardContent({ user, appMode, onBackToModes }) {
       </div>
 
       {/* ── Status bar ── */}
-      <div className="flex-shrink-0 h-8 flex items-center px-6 border-t border-ash bg-white text-[10px] uppercase tracking-widest text-smoke font-mono">
+      <div className="flex-shrink-0 h-8 flex items-center px-6 bg-transparent text-[10px] uppercase tracking-widest text-smoke font-mono">
         <span>MetroVerity v1.0</span>
         <span className="mx-4 text-ash">|</span>
         <span>Legal Metrology (Packaged Commodities) Rules, 2011</span>
