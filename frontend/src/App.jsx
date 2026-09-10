@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Scale, Search, Activity, ArrowRight, Loader2, Plus, Clock,
   FileText, Eye, ChevronLeft, ChevronRight, ShieldCheck, AlertTriangle, ShieldAlert,
-Trash2 } from 'lucide-react';
+Trash2, Box } from 'lucide-react';
 import { SignedIn, SignedOut, UserButton, SignIn, useUser } from '@clerk/clerk-react';
 import IngestionForm from './components/IngestionForm';
 import VisualOverlay from './components/VisualOverlay';
@@ -30,14 +30,13 @@ function LiveClock() {
 }
 
 // ─── Case Sidebar ──────────────────────────────────────────────────────────
-function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collapsed, onToggleCollapse }) {
+function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collapsed, onToggleCollapse, isManufacturer }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const { user } = useUser();
   const role = user?.publicMetadata?.role;
-  const isAdmin = role === 'ADMIN';
+  const isAdmin = role?.toUpperCase() === 'ADMIN';
 
   const fetchHistory = async () => {
     try {
@@ -127,7 +126,7 @@ title="Collapse sidebar"
       
 
       {/* New Inspection button — only after a scan exists */}
-      {hasScan && (
+      {!isManufacturer && hasScan && (
         <div className={`px-2 pt-2 pb-1 ${collapsed ? 'flex justify-center' : ''}`}>
           <button
             onClick={onNewIntake}
@@ -159,7 +158,7 @@ title="Collapse sidebar"
             <div className="flex justify-end pr-1">
               <button 
                 onClick={handleDeleteAll}
-                className="text-[10px] text-shell-500 hover:text-fail flex items-center space-x-1 transition"
+                className="text-[10px] text-gray-400 hover:text-fail flex items-center space-x-1 transition"
                 title="Clear all records"
               >
                 <Trash2 className="w-3 h-3" />
@@ -224,26 +223,22 @@ title="Collapse sidebar"
 }
 
 // ─── Dossier Tabs ──────────────────────────────────────────────────────────
-function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit }) {
-  const [activeTab, setActiveTab] = useState('intake');
+function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, isManufacturer }) {
+  const initialTab = isManufacturer ? (currentScan ? 'canvas' : 'none') : 'intake';
+  const [activeTab, setActiveTab] = useState(initialTab);
 
-  // Auto-switch to evidence canvas when a scan result arrives
   useEffect(() => {
     if (currentScan) setActiveTab('canvas');
-  }, [currentScan]);
+    else setActiveTab(isManufacturer ? 'none' : 'intake');
+  }, [currentScan, isManufacturer]);
 
-  // Reset to intake when scan is cleared (New Inspection pressed)
-  useEffect(() => {
-    if (!currentScan) setActiveTab('intake');
-  }, [currentScan]);
-
-  // Tabs are dynamic: only show canvas & report after first scan
   const visibleTabs = [
     {
       id: 'intake',
-      label: currentScan ? 'Modify Parameters' : 'New Intake',
+      label: currentScan ? 'Scan Parameters' : 'New Intake',
       icon: Plus,
-      always: true,
+      always: !isManufacturer,
+      hideForManufacturer: true
     },
     {
       id: 'canvas',
@@ -258,7 +253,7 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit })
       always: false,
       dot: true,
     },
-  ].filter(t => t.always || !!currentScan);
+  ].filter(t => (t.always || !!currentScan) && !(isManufacturer && t.hideForManufacturer));
 
   return (
     <div className="flex flex-col h-full">
@@ -292,10 +287,23 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit })
 
       {/* Tab content */}
       <div className="flex-1 overflow-hidden bg-surface-50">
+        {/* Blank state for manufacturer */}
+        {isManufacturer && !currentScan && (
+           <div className="h-full flex flex-col items-center justify-center bg-surface-50 text-shell-600">
+               <div className="text-center p-8 bg-white shadow-card rounded-2xl border border-gray-200 max-w-sm w-full mx-4">
+                   <Box className="w-12 h-12 text-surface-300 mx-auto mb-3" />
+                   <h2 className="text-sm font-semibold text-gray-900 mb-1">Manufacturer Portal</h2>
+                   <p className="text-xs text-gray-500">Select an inspection log from the sidebar to view detailed compliance results and reports.</p>
+               </div>
+           </div>
+        )}
+
         {/* Intake / Modify Parameters (Kept mounted to preserve state) */}
-        <div className={`h-full overflow-y-auto p-6 ${activeTab === 'intake' ? 'block' : 'hidden'}`}>
-          <IngestionForm onScanSubmit={onScanSubmit} isScanning={isScanning} currentScan={currentScan} />
-        </div>
+        {!isManufacturer && (
+          <div className={`h-full overflow-y-auto p-6 ${activeTab === 'intake' ? 'block' : 'hidden'}`}>
+            <IngestionForm onScanSubmit={onScanSubmit} isScanning={isScanning} currentScan={currentScan} />
+          </div>
+        )}
 
         {/* Evidence Canvas — overflow-y-auto so tall images scroll */}
         {activeTab === 'canvas' && (
@@ -330,8 +338,44 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit })
 
 // ─── Root App ──────────────────────────────────────────────────────────────
 export default function App() {
-  const { user } = useUser();
+  const devRole = import.meta.env.VITE_DEV_ROLE;
+  if (devRole) {
+    const mockUser = {
+      fullName: "Dev Mode " + devRole,
+      publicMetadata: { role: devRole }
+    };
+    return <DashboardContent user={mockUser} />;
+  }
+  return <ClerkApp />;
+}
+
+function ClerkApp() {
+  return (
+    <>
+      <SignedOut>
+        <div className="min-h-screen bg-shell-950 flex flex-col items-center justify-center p-4">
+           <div className="mb-8 flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center">
+              <Scale className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white tracking-tight">MetroVerity</h1>
+              <p className="text-sm text-shell-600 font-medium">Department of Consumer Affairs</p>
+            </div>
+          </div>
+          <SignIn />
+        </div>
+      </SignedOut>
+      <SignedIn>
+        <DashboardContent user={user} />
+      </SignedIn>
+    </>
+  );
+}
+
+function DashboardContent({ user }) {
   const role = user?.publicMetadata?.role || 'UNASSIGNED ROLE';
+  const isManufacturer = role.toUpperCase() === 'MANUFACTURER';
   
   const [currentScan, setCurrentScan] = useState(null);
   const [currentImageUrl, setCurrentImageUrl] = useState('');
@@ -372,22 +416,6 @@ export default function App() {
   };
 
   return (
-    <>
-      <SignedOut>
-        <div className="min-h-screen bg-shell-950 flex flex-col items-center justify-center p-4">
-           <div className="mb-8 flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center">
-              <Scale className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">MetroVerity</h1>
-              <p className="text-sm text-shell-600 font-medium">Department of Consumer Affairs</p>
-            </div>
-          </div>
-          <SignIn />
-        </div>
-      </SignedOut>
-      <SignedIn>
         <div className="h-screen flex flex-col bg-shell-950 overflow-hidden font-sans">
 
       {/* ── Titlebar with centred brand ── */}
@@ -453,6 +481,7 @@ className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell
             currentImageUrl={currentImageUrl}
             isScanning={isScanning}
             onScanSubmit={handleScanSubmit}
+            isManufacturer={isManufacturer}
           />
         </main>
       </div>

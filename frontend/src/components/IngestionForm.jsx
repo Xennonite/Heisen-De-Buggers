@@ -119,6 +119,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
   return (
     <div className="bg-white shadow-card border-2 border-gray-200 border border-gray-200 rounded-2xl p-6 shadow-xl space-y-6">
       <div>
+        {!currentScan && (
         <div className="flex border-b border-gray-200 mb-4">
             <button
                 type="button"
@@ -137,6 +138,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
                 E-Comm URL
             </button>
         </div>
+        )}
 
         <h2 className="text-base font-semibold text-gray-900 flex items-center space-x-2">
             {mode === 'physical' ? (

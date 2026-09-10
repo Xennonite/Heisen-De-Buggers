@@ -10,7 +10,7 @@ load_dotenv()
 
 CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 _cached_public_keys = {}
 
@@ -37,6 +37,17 @@ def get_public_keys():
     return keys
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    if not CLERK_SECRET_KEY:
+        # Seamless offline development mode
+        import logging
+        logging.warning("CLERK_SECRET_KEY is missing. Operating in offline DEV_MODE with mock authentication.")
+        # We can extract a role from headers if the frontend sends a mock one, 
+        # but defaulting to ADMIN is safest for dev. Or we can let the frontend send it via a custom header.
+        return {"public_metadata": {"role": "ADMIN"}, "role": "ADMIN"}
+
+    if not credentials:
+        raise HTTPException(status_code=403, detail="Not authenticated")
+
     token = credentials.credentials
     try:
         public_keys = get_public_keys()

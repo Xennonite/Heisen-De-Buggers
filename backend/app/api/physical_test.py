@@ -62,6 +62,11 @@ def perform_mpe_check(payload: MpeTestRequest, user: dict = Depends(require_role
     if q <= 0:
         raise HTTPException(status_code=400, detail="Declared quantity must be greater than 0.")
 
+    lot_size = getattr(payload, "lot_size", 32)
+    required_sample_size = 32 if lot_size < 4000 else 80
+    if len(payload.sample_weights) != required_sample_size:
+        raise HTTPException(status_code=400, detail=f"For a lot size of {lot_size}, the Fifth Schedule requires exactly {required_sample_size} sample weights. You provided {len(payload.sample_weights)}.")
+
     weights = payload.sample_weights
     if not weights:
         raise HTTPException(status_code=400, detail="Sample weights list cannot be empty.")
