@@ -28,7 +28,7 @@ export default function LandingPage({ onDevLogin, isDev }) {
         {/* Left Side: Branding */}
         <div className="flex-1 md:pr-12 text-center md:text-left bg-white/30 backdrop-blur-xl p-10 md:p-12 rounded-[40px] border border-white/40 shadow-2xl">
           <div className="flex justify-center md:justify-start mb-8">
-            <img src="/bg-motif.jpg" alt="MetroVerity Logo" className="w-24 h-24 rounded-full border-2 border-white/60 shadow-lg object-cover" />
+            <img src="/logo.jpg" alt="MetroVerity Logo" className="w-24 h-24 rounded-full border-2 border-white/60 shadow-lg object-cover" />
           </div>
           <h2 className="text-sm font-mono text-offBlack uppercase tracking-[0.2em] mb-4 opacity-80 font-medium">
             Government of India

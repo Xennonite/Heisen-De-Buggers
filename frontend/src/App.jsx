@@ -514,7 +514,12 @@ function DashboardContent({ user, appMode, onBackToModes }) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-parchment overflow-hidden font-mono">
+    <div className="h-screen flex flex-col bg-parchment overflow-hidden font-mono relative z-0">
+      
+      {/* Background ambient golden wash */}
+      <div className="absolute inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="bg-wash-warm opacity-30"></div>
+      </div>
 
       {/* ── Titlebar ── */}
       <div className="flex-shrink-0 h-16 flex items-center px-6 border-b border-ash bg-parchment relative z-10">
@@ -525,7 +530,7 @@ function DashboardContent({ user, appMode, onBackToModes }) {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="flex items-center space-x-4">
             <div className="w-10 h-10 rounded-full border border-ash bg-white flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
-              <img src="/bg-motif.jpg" alt="MetroVerity Logo" className="w-full h-full object-cover" />
+              <img src="/logo.jpg" alt="MetroVerity Logo" className="w-full h-full object-cover" />
             </div>
             <div className="leading-tight">
               <div className="text-xl font-serif text-offBlack tracking-tight">MetroVerity</div>
