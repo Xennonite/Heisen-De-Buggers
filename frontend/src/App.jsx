@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Scale, Search, Activity, ArrowRight, Loader2, Plus, Clock,
+import {Scale, Search, Activity, ArrowRight, Loader2, Plus, Clock,
   FileText, Eye, ChevronLeft, ChevronRight, ShieldCheck, AlertTriangle, ShieldAlert,
-Trash2, Box } from 'lucide-react';
+Trash2, Box, CheckSquare, Check} from 'lucide-react';
 import { SignedIn, SignedOut, UserButton, SignIn, useUser } from '@clerk/clerk-react';
 import IngestionForm from './components/IngestionForm';
 import VisualOverlay from './components/VisualOverlay';
@@ -34,6 +33,30 @@ function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collap
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedScans, setSelectedScans] = useState([]);
+
+  const toggleSelection = (scanId) => {
+    setSelectedScans(prev => 
+      prev.includes(scanId) 
+        ? prev.filter(id => id !== scanId)
+        : [...prev, scanId]
+    );
+  };
+  
+  const handleDeleteSelected = async () => {
+    if (window.confirm(`Delete ${selectedScans.length} selected records? This action cannot be undone.`)) {
+      try {
+        await Promise.all(selectedScans.map(id => auditApi.deleteScan(id)));
+        setSelectedScans([]);
+        setSelectionMode(false);
+        fetchHistory();
+      } catch (err) {
+        alert('Failed to delete some records.');
+        console.error(err);
+      }
+    }
+  };
   
   const role = user?.publicMetadata?.role;
   const isAdmin = role?.toUpperCase() === 'ADMIN';
@@ -155,15 +178,37 @@ title="Collapse sidebar"
             />
           </div>
           {isAdmin && history.length > 0 && (
-            <div className="flex justify-end pr-1">
-              <button 
-                onClick={handleDeleteAll}
-                className="text-[10px] text-gray-400 hover:text-fail flex items-center space-x-1 transition"
-                title="Clear all records"
-              >
-                <Trash2 className="w-3 h-3" />
-                <span>Clear All</span>
-              </button>
+            <div className="flex justify-end space-x-3 pr-1 pt-1">
+              {selectionMode ? (
+                <>
+                  <button onClick={() => { setSelectionMode(false); setSelectedScans([]); }} className="text-[10px] text-gray-400 hover:text-white flex items-center space-x-1 transition">
+                    <span>Cancel</span>
+                  </button>
+                  <button 
+                    onClick={handleDeleteSelected}
+                    disabled={selectedScans.length === 0}
+                    className="text-[10px] text-gray-400 hover:text-fail flex items-center space-x-1 transition disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Delete ({selectedScans.length})</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setSelectionMode(true)} className="text-[10px] text-gray-400 hover:text-brand-400 flex items-center space-x-1 transition">
+                    <CheckSquare className="w-3 h-3" />
+                    <span>Select</span>
+                  </button>
+                  <button 
+                    onClick={handleDeleteAll}
+                    className="text-[10px] text-gray-400 hover:text-fail flex items-center space-x-1 transition"
+                    title="Clear all records"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Clear All</span>
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -185,33 +230,53 @@ title="Collapse sidebar"
           )
         ) : (
           filtered.map((item) => {
-            const isActive = item.scan_id === currentScanId;
+            const isActive = !selectionMode && item.scan_id === currentScanId;
+            const isSelected = selectedScans.includes(item.scan_id);
             return (
               <button
                 key={item.id || item.scan_id}
-                onClick={() => item.data && onSelectScan(item.data)}
+                onClick={() => {
+                  if (selectionMode) {
+                    toggleSelection(item.scan_id);
+                  } else if (item.data) {
+                    onSelectScan(item.data);
+                  }
+                }}
                 title={collapsed ? `#${item.scan_id}` : undefined}
                 className={`w-full text-left rounded-lg transition group relative ${
                   isActive
                     ? 'bg-brand-500/20 border border-brand-500/40'
+                    : selectionMode && isSelected
+                    ? 'bg-brand-500/10 border border-brand-500/30'
                     : 'hover:bg-shell-800 border border-transparent'
                 } ${collapsed ? 'flex justify-center p-2' : 'p-2'}`}
               >
                 {collapsed ? (
-                  statusIcon(item.status)
+                  selectionMode ? (
+                    <div className={`w-3 h-3 rounded flex items-center justify-center border flex-shrink-0 ${isSelected ? 'bg-brand-500 border-brand-500' : 'border-shell-600'}`}>
+                      {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                    </div>
+                  ) : statusIcon(item.status)
                 ) : (
-                  <>
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-xs font-mono text-white font-semibold truncate">
-                        #{item.scan_id}
-                      </span>
-                      {statusIcon(item.status)}
+                  <div className="flex items-center space-x-2.5">
+                    {selectionMode && (
+                      <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border flex-shrink-0 transition-colors ${isSelected ? 'bg-brand-500 border-brand-500' : 'border-shell-600 group-hover:border-shell-400'}`}>
+                        {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-xs font-mono text-white font-semibold truncate">
+                          #{item.scan_id}
+                        </span>
+                        {!selectionMode && statusIcon(item.status)}
+                      </div>
+                      <div className="text-[11px] text-shell-600 truncate capitalize">
+                        {item.category} {item.timestamp && ` • ${new Date(item.timestamp).toLocaleDateString()}`}
+                      </div>
+                      <div className="text-[11px] text-shell-600 font-mono">{item.compliance_score}%</div>
                     </div>
-                    <div className="text-[11px] text-shell-600 truncate capitalize">
-                      {item.category} {item.timestamp && ` • ${new Date(item.timestamp).toLocaleDateString()}`}
-                    </div>
-                    <div className="text-[11px] text-shell-600 font-mono">{item.compliance_score}%</div>
-                  </>
+                  </div>
                 )}
               </button>
             );
