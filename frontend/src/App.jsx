@@ -518,7 +518,7 @@ function DashboardContent({ user, appMode, onBackToModes }) {
       
       {/* Background ambient golden wash */}
       <div className="absolute inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="bg-wash-warm opacity-30"></div>
+        <div className="bg-wash-warm opacity-100"></div>
       </div>
 
       {/* ── Titlebar ── */}

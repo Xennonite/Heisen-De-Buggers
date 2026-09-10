@@ -158,7 +158,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan, i
   };
 
   return (
-    <div className="bg-white shadow-card border-2 border-gray-200 border border-gray-200 rounded-2xl p-6 shadow-xl space-y-6" style={{ colorScheme: 'light' }}>
+    <div className="bg-white/70 backdrop-blur-2xl border border-white/60 rounded-card p-10 shadow-lg space-y-8" style={{ colorScheme: 'light' }}>
       <div>
         {!currentScan && null}
 
