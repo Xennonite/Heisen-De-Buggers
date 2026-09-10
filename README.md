@@ -102,16 +102,16 @@ If you just cloned the repo and do not want to set up Clerk Authentication, you 
 cd frontend
 npm install
 
-# Test the Admin UI (Full Access)
+# Test the Admin UI (Full Access, includes 'Clear All' functionality)
 npm run dev:admin
 
 # Test the Officer UI (Inspection capabilities, no delete rights)
 npm run dev:officer
 
-# Test the Manufacturer UI (Read-only historical view)
+# Test the Manufacturer UI (Read-only historical view, ingestion forms are hidden)
 npm run dev:manufacturer
 ```
-*Note: If the backend detects that `CLERK_SECRET_KEY` is missing from your `.env`, it will automatically switch to offline mode and mock the JWT verification so your API calls still succeed.*
+*Note: These commands inject a secure `X-Mock-Role` header. The FastAPI backend is configured to accept this header for seamless mock authentication, provided the environment is not explicitly set to production.*
 
 ### Frontend Setup
 

@@ -7,6 +7,12 @@ const client = axios.create({
 });
 
 client.interceptors.request.use(async (config) => {
+  const devRole = import.meta.env.VITE_DEV_ROLE;
+  if (devRole) {
+    config.headers['X-Mock-Role'] = devRole;
+    return config;
+  }
+
   if (window.Clerk && window.Clerk.session) {
     const token = await window.Clerk.session.getToken();
     if (token) {
