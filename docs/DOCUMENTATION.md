@@ -42,7 +42,9 @@ When you open MetroVerity (`http://localhost:5173`), the dashboard presents a cl
    - **Physical MPE Test Button:** Opens the Fifth & First Schedule batch weight sampling modal.
    - **Inspection Log Button:** Opens the drawer containing previously scanned commodities archived in the SQLite database.
 2. **Left Panel — Ingestion & Dimensions Form:**
-   - Image upload / drag-and-drop zone.
+   - Image upload / drag-and-drop zone (Physical Inspection) or URL input (E-Commerce Scraping).
+   - *Note: Once a historical scan is selected, the form locks to the specific modality used (Physical or E-Commerce) to prevent tampering.*
+   - *Note: If a user is logged in as a `MANUFACTURER`, this panel is completely hidden, presenting a clean read-only historical dashboard.*
    - Quick-load demo presets for instant one-click demonstration.
    - Precise physical package dimension inputs in millimeters ($H, W, D$).
    - Container geometry selector (Rectangular, Cylindrical, Irregular).
@@ -154,8 +156,8 @@ When physical warehouse or laboratory package weighing is conducted:
 1. Click **"Physical MPE Test"** in the top navigation bar.
 2. Enter the **Declared Nominal Quantity ($Q$)** and select units (`g` or `ml`).
 3. Enter the **Tare Weight** of the packaging material.
-4. Select the **Fifth Schedule Lot Size** (e.g., 32 units for standard inspection, 80 units for large lots).
-5. Enter the measured gross weights in the interactive 32-cell grid (or click **"Passing Run"** / **"Failing Run"** for demonstration).
+4. Select the **Fifth Schedule Lot Size** (Lot Size < 4000 requires exactly 32 samples; Lot Size >= 4000 requires exactly 80 samples).
+5. Enter the measured gross weights in the interactive grid. The grid defaults to an empty state to enforce strict manual data entry, but you can click **"Passing Run"** / **"Failing Run"** to instantly fill it with mock data for testing.
 6. **Review the Three Statistical Verifications [Rule 19(6)]:**
    - **Verification 1 (Sample Mean $\bar{x}$):** The average net weight across all sample units must be $\ge$ the declared nominal quantity $Q$.
    - **Verification 2 (Defective Unit Allowance):** The number of individual packages with a deficiency greater than the First Schedule Table-I $\text{MPE}(Q)$ must not exceed the Fifth Schedule limit (maximum 2 allowed for a 32-unit lot).
@@ -557,6 +559,6 @@ To introduce a new Legal Metrology compliance rule to MetroVerity:
 6. **Add Unit Tests:** Write corresponding test cases in `backend/tests/test_rules.py`.
 
 
-## Utility Scripts
-### `clear_history.py`
-Located in `scripts/clear_history.py`, this Python script provides a cross-platform method for truncating the SQLite `scan_records` table and wiping the `backend/uploads/` directory. Use this during testing to quickly reset the application state without needing to manually recreate the database schema or restart the uvicorn server.
+## Admin Dashboard Features
+### One-Click Data Reset (Clear All Records)
+The `clear_history.py` utility script has been permanently removed and integrated directly into the Admin UI for better security. Users logged in as `ADMIN` will see a red "Clear All Records" button in the sidebar. This truncates the SQLite `scan_records` table and safely cleans up orphaned image files, allowing you to quickly reset the application state without interacting with the terminal.

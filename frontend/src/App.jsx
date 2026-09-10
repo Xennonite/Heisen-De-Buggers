@@ -30,7 +30,7 @@ function LiveClock() {
 }
 
 // ─── Case Sidebar ──────────────────────────────────────────────────────────
-function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collapsed, onToggleCollapse, isManufacturer }) {
+function CaseSidebar({ currentScanId, hasScan, onSelectScan, onNewIntake, collapsed, onToggleCollapse, isManufacturer, user }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -350,6 +350,7 @@ export default function App() {
 }
 
 function ClerkApp() {
+  const { user } = useUser();
   return (
     <>
       <SignedOut>
@@ -458,7 +459,13 @@ className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell
     <span className="text-[11px] font-semibold text-white">{user?.fullName || user?.primaryEmailAddress?.emailAddress}</span>
     <span className="text-[9px] text-brand-400 uppercase tracking-wider">{role.replace('_', ' ')}</span>
   </div>
-  <UserButton />
+  {import.meta.env.VITE_DEV_ROLE ? (
+    <div className="w-7 h-7 rounded-full bg-shell-700 flex items-center justify-center text-xs font-bold text-white border border-shell-600">
+      {user?.fullName?.charAt(0) || 'D'}
+    </div>
+  ) : (
+    <UserButton />
+  )}
 </div>
 
 </div>
@@ -473,6 +480,8 @@ className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell
           onNewIntake={handleNewIntake}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
+          isManufacturer={isManufacturer}
+          user={user}
         />
 
         <main className="flex-1 overflow-hidden flex flex-col">
@@ -509,7 +518,5 @@ className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell
         currentScan={currentScan}
       />
     </div>
-    </SignedIn>
-    </>
   );
 }

@@ -36,7 +36,11 @@ def get_public_keys():
     _cached_public_keys = keys
     return keys
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Security(security)):
+    if request.headers.get("x-mock-role") and os.getenv("ENVIRONMENT", "dev") != "production":
+        role = request.headers.get("x-mock-role")
+        return {"public_metadata": {"role": role}, "role": role}
+
     if not CLERK_SECRET_KEY:
         # Seamless offline development mode
         import logging
