@@ -442,6 +442,7 @@ function DashboardContent({ user }) {
 
 {/* Right: MPE Test + Rule Engine */}
 <div className="ml-auto flex items-center space-x-4">
+{(!currentScan || !currentScan.url) && (
 <button
 onClick={() => setIsMpeModalOpen(true)}
 className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell-700 bg-shell-800 text-shell-600 hover:text-white hover:border-shell-600 text-[11px] font-medium transition"
@@ -449,6 +450,7 @@ className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-shell
 <Activity className="w-3 h-3" />
 <span>MPE Test</span>
 </button>
+)}
 <span className="flex items-center space-x-1.5 text-[10px] text-emerald-600/70">
 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
 <span>Rule Engine Online</span>

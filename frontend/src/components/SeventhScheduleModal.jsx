@@ -78,7 +78,9 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
  const updated = [...sampleWeights];
  updated[index] = parseFloat(value) || 0;
  setSampleWeights(updated);
- calculateMpe(updated, declaredQty, unit, tareWeight);
+ if (updated.length === sampleSize) {
+     calculateMpe(updated, declaredQty, unit, tareWeight);
+ }
  };
 
  const handleBulkInputChange = (e) => {
@@ -93,7 +95,11 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
       .filter(n => !isNaN(n));
       
     setSampleWeights(parsed);
-    calculateMpe(parsed, declaredQty, unit, tareWeight);
+    if (parsed.length === sampleSize) {
+        calculateMpe(parsed, declaredQty, unit, tareWeight);
+    } else {
+        setMpeResult(null);
+    }
  };
 
  const handleLotSizeChange = (e) => {
