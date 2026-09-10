@@ -37,11 +37,11 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan, o
   
   const [files, setFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
-  const [heightMm, setHeightMm] = useState(150);
-  const [widthMm, setWidthMm] = useState(80);
-  const [depthMm, setDepthMm] = useState(40);
-  const [containerType, setContainerType] = useState('rectangular');
-  const [category, setCategory] = useState('biscuits');
+  const [heightMm, setHeightMm] = useState('');
+  const [widthMm, setWidthMm] = useState('');
+  const [depthMm, setDepthMm] = useState('');
+  const [containerType, setContainerType] = useState('');
+  const [category, setCategory] = useState('');
 
   const [url, setUrl] = useState('');
   const [isLooseCommodity, setIsLooseCommodity] = useState(false);
@@ -58,14 +58,14 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan, o
         setMode('url');
         setUrl(currentScan.url);
         setIsLooseCommodity(currentScan.is_loose_commodity || false);
-        setCategory(currentScan.category || 'general');
+        setCategory(currentScan.category || '');
       } else {
         setMode('physical');
-        setHeightMm(currentScan.package_height_mm || 150);
-        setWidthMm(currentScan.package_width_mm || 80);
-        setDepthMm(currentScan.package_depth_mm || 40);
-        setContainerType(currentScan.container_type || 'rectangular');
-        setCategory(currentScan.category || 'general');
+        setHeightMm(currentScan.package_height_mm || '');
+        setWidthMm(currentScan.package_width_mm || '');
+        setDepthMm(currentScan.package_depth_mm || '');
+        setContainerType(currentScan.container_type || '');
+        setCategory(currentScan.category || '');
 
         if (currentScan.is_historical) {
           setFiles([]);
@@ -81,11 +81,11 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan, o
     } else {
       setFiles([]);
       setPreviewUrls([]);
-      setHeightMm(150);
-      setWidthMm(80);
-      setDepthMm(40);
-      setContainerType('rectangular');
-      setCategory('biscuits');
+      setHeightMm('');
+      setWidthMm('');
+      setDepthMm('');
+      setContainerType('');
+      setCategory('');
       setUrl('');
       setIsLooseCommodity(false);
     }
@@ -118,7 +118,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan, o
     } else if (['baby_food', 'milk_powder', 'coffee', 'paint_varnish'].includes(val)) {
       setContainerType('cylindrical');
     } else {
-      setContainerType('rectangular');
+      setContainerType('');
     }
   };
   
@@ -368,7 +368,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan, o
                         type="url"
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
-                        placeholder="https://www.amazon.in/dp/..."
+                        placeholder="e.g., https://www.amazon.in/dp/..."
                         className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/50" style={{ colorScheme: 'light' }}
                         required
                     />
