@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Layers, Globe, ArrowRight } from 'lucide-react';
+import InteractiveBackground from './InteractiveBackground';
 
 export default function ModeSelection({ onSelectMode }) {
   const modes = [
@@ -30,10 +31,14 @@ export default function ModeSelection({ onSelectMode }) {
   ];
 
   return (
-    <div className="min-h-screen bg-parchment flex items-center justify-center p-6">
-      <div className="w-full max-w-6xl mx-auto">
+    <div className="relative min-h-screen bg-parchment flex items-center justify-center p-6 overflow-hidden">
+      
+      {/* Interactive Golden Particles */}
+      <InteractiveBackground density={50} speed={0.3} glowColor="#ecda98" />
+
+      <div className="relative z-10 w-full max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="font-serif text-5xl text-offBlack mb-4">Inspection Portal</h1>
+          <h1 className="font-serif text-5xl text-offBlack mb-4">MetroVerity</h1>
           <p className="font-mono text-graphite text-lg">Select an operational mode to begin statutory enforcement.</p>
         </div>
 
@@ -44,9 +49,10 @@ export default function ModeSelection({ onSelectMode }) {
               <button
                 key={mode.id}
                 onClick={() => onSelectMode(mode.id)}
-                className={`group relative text-left p-10 rounded-card border ${mode.border} ${mode.color} transition-all duration-300 hover:scale-[1.02] overflow-hidden`}
+                className={`group relative text-left p-10 rounded-card border ${mode.border} ${mode.color} transition-all duration-300 hover:-translate-y-1 overflow-hidden`}
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -mr-16 -mt-16 transition-transform group-hover:scale-150"></div>
+                {/* Reveal gradient wash on hover */}
+                <div className="bg-wash-cool"></div>
                 
                 <div className="w-12 h-12 rounded-full border border-ash flex items-center justify-center bg-white mb-8">
                   <Icon className="w-5 h-5 text-offBlack" />
