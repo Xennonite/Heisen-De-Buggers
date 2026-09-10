@@ -1,7 +1,38 @@
 import React, { useState, useRef } from 'react';
+import SearchableSelect from './SearchableSelect';
 import { Upload, Sparkles, Box, Cylinder, HelpCircle, Layers, Image as ImageIcon, Loader2, Link as LinkIcon } from 'lucide-react';
 
-export default function IngestionForm({ onScanSubmit, isScanning, currentScan }) {
+
+const COMMODITY_CATEGORIES = [
+  { value: "general", label: "General Packaged Goods" },
+  { value: "baby_food", label: "1. Baby food" },
+  { value: "weaning_food", label: "2. Weaning food" },
+  { value: "biscuits", label: "3. Biscuits" },
+  { value: "bread", label: "4. Bread" },
+  { value: "butter_margarine", label: "5. Butter and Margarine" },
+  { value: "cereals_pulses", label: "6. Cereals and Pulses" },
+  { value: "coffee", label: "7. Coffee" },
+  { value: "tea", label: "8. Tea" },
+  { value: "beverage_materials", label: "9. Materials for beverages" },
+  { value: "edible_oil_ghee", label: "10. Edible Oils, Vanaspati, Ghee" },
+  { value: "milk_powder", label: "11. Milk Powder" },
+  { value: "non_soapy_detergents", label: "12. Non-soapy detergents (powder)" },
+  { value: "rice_flour_atta", label: "13. Rice, flour, atta, rawa, suji" },
+  { value: "salt", label: "14. Salt" },
+  { value: "soaps", label: "15. Soaps (Laundry, Toilet, Detergent bars)" },
+  { value: "aerated_drinks", label: "16. Aerated soft drinks, non-alcoholic beverages" },
+  { value: "mineral_water", label: "17. Mineral / Drinking water" },
+  { value: "cement", label: "18. Cement in bags" },
+  { value: "paint_varnish", label: "19. Paint, varnish etc." },
+];
+
+const GEOMETRY_OPTIONS = [
+  { value: "rectangular", label: "Rectangular" },
+  { value: "cylindrical", label: "Cylindrical" },
+  { value: "irregular", label: "Irregular" },
+];
+
+export default function IngestionForm({ onScanSubmit, isScanning, currentScan, onModeChange }) {
   const [mode, setMode] = useState('physical'); // 'physical' or 'url'
   
   const [files, setFiles] = useState([]);
@@ -14,6 +45,10 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
 
   const [url, setUrl] = useState('');
   const [isLooseCommodity, setIsLooseCommodity] = useState(false);
+
+  React.useEffect(() => {
+    if (onModeChange) onModeChange(mode);
+  }, [mode, onModeChange]);
 
   const fileInputRef = useRef(null);
 
@@ -76,12 +111,11 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
     setPreviewUrls(updatedUrls);
   };
 
-  const handleCategoryChange = (e) => {
-    const selectedCategory = e.target.value;
-    setCategory(selectedCategory);
-    if (['aerated_drinks', 'mineral_water'].includes(selectedCategory)) {
+  const handleCategoryChange = (val) => {
+    setCategory(val);
+    if (['aerated_drinks', 'mineral_water'].includes(val)) {
       setContainerType('cylindrical');
-    } else if (['baby_food', 'milk_powder', 'coffee', 'paint_varnish'].includes(selectedCategory)) {
+    } else if (['baby_food', 'milk_powder', 'coffee', 'paint_varnish'].includes(val)) {
       setContainerType('cylindrical');
     } else {
       setContainerType('rectangular');
@@ -117,7 +151,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
   };
 
   return (
-    <div className="bg-white shadow-card border-2 border-gray-200 border border-gray-200 rounded-2xl p-6 shadow-xl space-y-6">
+    <div className="bg-white shadow-card border-2 border-gray-200 border border-gray-200 rounded-2xl p-6 shadow-xl space-y-6" style={{ colorScheme: 'light' }}>
       <div>
         {!currentScan && (
         <div className="flex border-b border-gray-200 mb-4">
@@ -234,7 +268,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
                 </div>
                 ) : (
                 <div className="space-y-2 pointer-events-none">
-                <div className="w-10 h-10 rounded-full bg-white shadow-card border border-gray-200 flex items-center justify-center mx-auto text-brand-500">
+                <div className="w-10 h-10 rounded-full bg-white shadow-card border border-gray-200 flex items-center justify-center mx-auto text-brand-500" style={{ colorScheme: 'light' }}>
                 <Upload className="w-5 h-5" />
                 </div>
                 <div className="text-xs text-gray-700">
@@ -244,6 +278,27 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
                 </div>
                 )}
                 </div>
+                </div>
+
+                {/* Container Geometry & Category */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="text-[11px] text-gray-500 block mb-1">Commodity Category</label>
+                    <SearchableSelect
+                      value={category}
+                      onChange={handleCategoryChange}
+                      options={COMMODITY_CATEGORIES}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-gray-500 block mb-1">Container Geometry [Rule 7(4)]</label>
+                    <SearchableSelect
+                      value={containerType}
+                      onChange={(val) => setContainerType(val)}
+                      options={GEOMETRY_OPTIONS}
+                    />
+                  </div>
                 </div>
 
                 {/* Physical Dimension Inputs */}
@@ -264,7 +319,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
                 min="10"
                 value={heightMm}
                 onChange={(e) => setHeightMm(e.target.value.replace(/^0+(?=\d)/, ''))}
-                className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-brand-500/50"
+                className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-brand-500/50" style={{ colorScheme: 'light' }}
                 required
                 />
                 </div>
@@ -279,7 +334,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
                 min="10"
                 value={widthMm}
                 onChange={(e) => setWidthMm(e.target.value.replace(/^0+(?=\d)/, ''))}
-                className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-brand-500/50"
+                className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-brand-500/50" style={{ colorScheme: 'light' }}
                 required
                 />
                 </div>
@@ -293,7 +348,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
                 min="0"
                 value={depthMm}
                 onChange={(e) => setDepthMm(e.target.value.replace(/^0+(?=\d)/, ''))}
-                className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-brand-500/50"
+                className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-brand-500/50" style={{ colorScheme: 'light' }}
                 required
                 />
                 </div>
@@ -314,7 +369,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
                         placeholder="https://www.amazon.in/dp/..."
-                        className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/50"
+                        className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/50" style={{ colorScheme: 'light' }}
                         required
                     />
                 </div>
@@ -330,56 +385,19 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan })
                         Loose Commodity [Rule 26(g)] (e.g., Garments)
                     </label>
                 </div>
+
+                <div>
+                  <label className="text-[11px] text-gray-500 block mb-1">Commodity Category</label>
+                  <SearchableSelect
+                    value={category}
+                    onChange={handleCategoryChange}
+                    options={COMMODITY_CATEGORIES}
+                  />
+                </div>
             </div>
         )}
 
-        {/* Container Geometry & Category */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-[11px] text-gray-500 block mb-1">Commodity Category</label>
-            <select
-              value={category}
-              onChange={handleCategoryChange}
-              className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-brand-500/50"
-            >
-              <option value="general">General Packaged Goods</option>
-              <option value="baby_food">1. Baby food</option>
-              <option value="weaning_food">2. Weaning food</option>
-              <option value="biscuits">3. Biscuits</option>
-              <option value="bread">4. Bread</option>
-              <option value="butter_margarine">5. Butter and Margarine</option>
-              <option value="cereals_pulses">6. Cereals and Pulses</option>
-              <option value="coffee">7. Coffee</option>
-              <option value="tea">8. Tea</option>
-              <option value="beverage_materials">9. Materials for beverages</option>
-              <option value="edible_oil_ghee">10. Edible Oils, Vanaspati, Ghee</option>
-              <option value="milk_powder">11. Milk Powder</option>
-              <option value="non_soapy_detergents">12. Non-soapy detergents (powder)</option>
-              <option value="rice_flour_atta">13. Rice, flour, atta, rawa, suji</option>
-              <option value="salt">14. Salt</option>
-              <option value="soaps">15. Soaps (Laundry, Toilet, Detergent bars)</option>
-              <option value="aerated_drinks">16. Aerated soft drinks, non-alcoholic beverages</option>
-              <option value="mineral_water">17. Mineral / Drinking water</option>
-              <option value="cement">18. Cement in bags</option>
-              <option value="paint_varnish">19. Paint, varnish etc.</option>
-            </select>
-          </div>
 
-          {mode === 'physical' && (
-              <div>
-                <label className="text-[11px] text-gray-500 block mb-1">Container Geometry [Rule 7(4)]</label>
-                <select
-                value={containerType}
-                onChange={(e) => setContainerType(e.target.value)}
-                className="w-full bg-white shadow-inner border border-brand-500/50 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-brand-500/50"
-                >
-                <option value="rectangular">Rectangular</option>
-                <option value="cylindrical">Cylindrical</option>
-                <option value="irregular">Irregular</option>
-                </select>
-              </div>
-          )}
-        </div>
 
         {/* Submit Scan Button */}
         <button
