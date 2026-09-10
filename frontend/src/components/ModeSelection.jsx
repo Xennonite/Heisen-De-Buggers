@@ -9,7 +9,7 @@ export default function ModeSelection({ onSelectMode }) {
       title: 'Single SKU Scan',
       description: 'Run spatial and statutory validation on a single physical product package.',
       icon: Box,
-      color: 'bg-periwinkle',
+      color: 'bg-parchment',
       border: 'border-ash'
     },
     {
@@ -37,11 +37,11 @@ export default function ModeSelection({ onSelectMode }) {
       <div className="absolute inset-0 z-0">
         <div className="bg-wash-warm opacity-70"></div>
       </div>
-      <InteractiveBackground density={120} speed={0.4} glowColor="#ecda98" />
+      <InteractiveBackground density={300} speed={0.4} glowColor="#ecda98" />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto">
         <div className="text-center mb-16 flex flex-col items-center">
-          <img src="/logo.jpg" alt="MetroVerity Logo" className="w-20 h-20 rounded-full border border-ash/60 shadow-md object-cover mb-6" />
+          <img src="/logo.jpg" alt="MetroVerity Seal" className="w-28 h-28 rounded-full border-2 border-white/60 shadow-lg object-cover mb-6" />
           <h1 className="font-serif text-5xl text-offBlack mb-4 drop-shadow-sm">MetroVerity</h1>
           <p className="font-mono text-graphite text-lg">Select an operational mode to begin statutory enforcement.</p>
         </div>

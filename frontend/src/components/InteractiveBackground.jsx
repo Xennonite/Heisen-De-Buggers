@@ -41,15 +41,15 @@ export default function InteractiveBackground({ density = 50, speed = 0.5, glowC
         
         reset() {
           this.x = Math.random() * canvas.width;
-          this.y = canvas.height + Math.random() * 100;
-          this.size = Math.random() * 4 + 2; // Slightly larger
-          this.speedY = -(Math.random() * speed + 0.2);
-          this.speedX = (Math.random() - 0.5) * speed;
+          this.y = -(Math.random() * 100 + 30); // Start above the screen
+          this.size = Math.random() * 4 + 4; 
+          this.speedY = (Math.random() * speed + 0.5); // Positive = Falling Down
+          this.speedX = (Math.random() - 0.5) * speed; 
           this.life = 0;
-          this.maxLife = Math.random() * 300 + 100;
-          this.shape = Math.floor(Math.random() * 3); // 0: circle, 1: square (weight), 2: triangle (scale)
+          this.maxLife = Math.random() * 400 + 200;
+          this.shape = Math.floor(Math.random() * 3); 
           this.rotation = Math.random() * Math.PI * 2;
-          this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+          this.rotationSpeed = (Math.random() - 0.5) * 0.02; 
         }
 
         update() {
@@ -58,22 +58,26 @@ export default function InteractiveBackground({ density = 50, speed = 0.5, glowC
           this.rotation += this.rotationSpeed;
           this.life++;
 
-          // Repulse from mouse
+          // Repulse from mouse (Snappy)
           let dx = mouse.x - this.x;
           let dy = mouse.y - this.y;
           let distance = Math.sqrt(dx * dx + dy * dy);
-          let forceDirectionX = dx / distance;
-          let forceDirectionY = dy / distance;
           
-          const maxDistance = 200;
-          let force = (maxDistance - distance) / maxDistance;
-          
-          if (distance < maxDistance) {
+          const maxDistance = 250;
+          if (distance < maxDistance && distance > 0) {
+            let forceDirectionX = dx / distance;
+            let forceDirectionY = dy / distance;
+            let force = (maxDistance - distance) / maxDistance;
+            
+            // Soft, gentle push
             this.x -= forceDirectionX * force * 5;
             this.y -= forceDirectionY * force * 5;
           }
 
-          if (this.y < -20 || this.x < -20 || this.x > canvas.width + 20 || this.life >= this.maxLife) {
+          // Wrap horizontally, reset if falls off the bottom
+          if (this.x < -30) this.x = canvas.width + 30;
+          if (this.x > canvas.width + 30) this.x = -30;
+          if (this.y > canvas.height + 30 || this.life >= this.maxLife) {
             this.reset();
           }
         }
@@ -87,26 +91,59 @@ export default function InteractiveBackground({ density = 50, speed = 0.5, glowC
           if (this.life < 30) opacity = this.life / 30;
           if (this.life > this.maxLife - 30) opacity = (this.maxLife - this.life) / 30;
           
-          ctx.fillStyle = glowColor + Math.floor(opacity * 180).toString(16).padStart(2, '0');
+          // Boost opacity for visibility at small sizes
+          const alpha = Math.min(Math.floor(opacity * 255), 255).toString(16).padStart(2, '0');
+          const color = glowColor + alpha;
+          ctx.fillStyle = color;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1;
+          
           ctx.shadowBlur = 15;
           ctx.shadowColor = glowColor;
           
-          ctx.beginPath();
           if (this.shape === 0) {
-            // Circle (Coin/Token)
+            // Ashoka Chakra (24 spokes)
+            ctx.beginPath();
             ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            for (let i = 0; i < 24; i++) {
+              ctx.moveTo(0, 0);
+              ctx.lineTo(Math.cos((i * Math.PI) / 12) * this.size, Math.sin((i * Math.PI) / 12) * this.size);
+            }
+            ctx.stroke();
           } else if (this.shape === 1) {
-            // Square (Calibration Weight)
-            ctx.rect(-this.size, -this.size, this.size * 2, this.size * 2);
-          } else if (this.shape === 2) {
-            // Triangle (Balance Scale Pivot)
-            ctx.moveTo(0, -this.size * 1.5);
-            ctx.lineTo(this.size, this.size);
-            ctx.lineTo(-this.size, this.size);
+            // Golden Star (8-pointed)
+            ctx.beginPath();
+            for (let i = 0; i < 16; i++) {
+              const radius = i % 2 === 0 ? this.size : this.size * 0.4;
+              const angle = (i * Math.PI) / 8;
+              if (i === 0) ctx.moveTo(radius, 0);
+              else ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            }
             ctx.closePath();
+            ctx.fill();
+          } else if (this.shape === 2) {
+            // Balance Scale
+            const s = this.size;
+            // Base
+            ctx.fillRect(-s*0.8, s*0.8, s*1.6, s*0.2);
+            // Pillar
+            ctx.fillRect(-s*0.1, -s*0.6, s*0.2, s*1.4);
+            // Beam
+            ctx.fillRect(-s, -s*0.6, s*2, s*0.15);
+            // Strings and Pans
+            ctx.beginPath();
+            ctx.moveTo(-s, -s*0.6); ctx.lineTo(-s - s*0.4, s*0.4);
+            ctx.moveTo(-s, -s*0.6); ctx.lineTo(-s + s*0.4, s*0.4);
+            ctx.moveTo(s, -s*0.6); ctx.lineTo(s - s*0.4, s*0.4);
+            ctx.moveTo(s, -s*0.6); ctx.lineTo(s + s*0.4, s*0.4);
+            ctx.stroke();
+            // Pans
+            ctx.fillRect(-s - s*0.5, s*0.4, s*1.0, s*0.15);
+            ctx.fillRect(s - s*0.5, s*0.4, s*1.0, s*0.15);
           }
           
-          ctx.fill();
           ctx.restore();
         }
       }
