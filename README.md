@@ -84,6 +84,35 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 </details>
 
+
+### Full Authentication Setup (Optional)
+If you want to fully test the RBAC pipeline in production, you must configure Clerk:
+1. Create a free account at [Clerk](https://clerk.com).
+2. Set `VITE_CLERK_PUBLISHABLE_KEY` in `frontend/.env.local`.
+3. Set `CLERK_SECRET_KEY` in `backend/.env`.
+4. Edit the Clerk Session Token to include `{"public_metadata": "{{user.public_metadata}}"}`.
+5. Manually assign roles (`ADMIN`, `LMPC_OFFICER`, `MANUFACTURER`) to your test users via the Clerk Dashboard Public Metadata.
+
+See `docs/DOCUMENTATION.md` for deeper instructions.
+
+### Zero-Config Offline Development
+If you just cloned the repo and do not want to set up Clerk Authentication, you can bypass the login screen entirely by using our built-in dev mock scripts:
+
+```bash
+cd frontend
+npm install
+
+# Test the Admin UI (Full Access)
+npm run dev:admin
+
+# Test the Officer UI (Inspection capabilities, no delete rights)
+npm run dev:officer
+
+# Test the Manufacturer UI (Read-only historical view)
+npm run dev:manufacturer
+```
+*Note: If the backend detects that `CLERK_SECRET_KEY` is missing from your `.env`, it will automatically switch to offline mode and mock the JWT verification so your API calls still succeed.*
+
 ### Frontend Setup
 
 <details>

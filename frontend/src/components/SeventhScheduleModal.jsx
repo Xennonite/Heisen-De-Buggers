@@ -6,8 +6,10 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
  const [declaredQty, setDeclaredQty] = useState(100);
  const [unit, setUnit] = useState('g');
  const [tareWeight, setTareWeight] = useState(0);
- const [lotSize, setLotSize] = useState(32);
+ const [lotSize, setLotSize] = useState(3000);
+ const [sampleSize, setSampleSize] = useState(32);
  const [sampleWeights, setSampleWeights] = useState([]);
+ const [bulkInput, setBulkInput] = useState('');
  const [mpeResult, setMpeResult] = useState(null);
  const [isCalculating, setIsCalculating] = useState(false);
  const [isExporting, setIsExporting] = useState(false);
@@ -19,16 +21,18 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
  setDeclaredQty(currentScan.net_quantity.declared_value);
  setUnit(currentScan.net_quantity.unit || 'g');
  }
- generateSamplePreset('passing');
+ generateSamplePreset('empty');
  }
  }, [isOpen, currentScan]);
 
- const generateSamplePreset = (type = 'passing') => {
+ const generateSamplePreset = (type = 'empty') => {
  const q = declaredQty || 100;
- const count = lotSize || 32;
+ const count = lotSize < 4000 ? 32 : 80;
  let weights = [];
 
- if (type === 'passing') {
+ if (type === 'empty') {
+   weights = [];
+ } else if (type === 'passing') {
  // Small random variations around Q with mean >= Q
  weights = Array.from({ length: count }, (_, i) => {
  const delta = (Math.sin(i * 1.5) * 1.5) + (i % 2 === 0 ? 0.8 : -0.2);
@@ -46,7 +50,10 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
  }
 
  setSampleWeights(weights);
- calculateMpe(weights, q, unit, tareWeight);
+ setSampleSize(count);
+ setBulkInput(weights.join(', '));
+ if (weights.length > 0) calculateMpe(weights, q, unit, tareWeight);
+ else setMpeResult(null);
  };
 
  const calculateMpe = async (weights, q, u, tare) => {
@@ -57,7 +64,7 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
  unit: u,
  sample_weights: weights.map((w) => parseFloat(w) || 0),
  tare_weight: parseFloat(tare) || 0,
- lot_size: weights.length,
+ lot_size: lotSize,
  });
  setMpeResult(res);
  } catch (err) {
@@ -72,6 +79,34 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
  updated[index] = parseFloat(value) || 0;
  setSampleWeights(updated);
  calculateMpe(updated, declaredQty, unit, tareWeight);
+ };
+
+ const handleBulkInputChange = (e) => {
+    const val = e.target.value;
+    setBulkInput(val);
+    
+    // Parse commas or newlines
+    const parsed = val.split(/[,\n]+/)
+      .map(s => s.trim())
+      .filter(s => s !== '')
+      .map(s => parseFloat(s))
+      .filter(n => !isNaN(n));
+      
+    setSampleWeights(parsed);
+    calculateMpe(parsed, declaredQty, unit, tareWeight);
+ };
+
+ const handleLotSizeChange = (e) => {
+    const newLotSize = parseInt(e.target.value) || 0;
+    setLotSize(newLotSize);
+    
+    const requiredSize = newLotSize < 4000 ? 32 : 80;
+    setSampleSize(requiredSize);
+    
+    // If the currently parsed weights match the required size, run calculation
+    if (sampleWeights.length === requiredSize) {
+        calculateMpe(sampleWeights, declaredQty, unit, tareWeight);
+    }
  };
 
  const handleExportFormA = async () => {
@@ -158,7 +193,7 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
  value={declaredQty}
  onChange={(e) => {
  setDeclaredQty(parseFloat(e.target.value) || 0);
- generateSamplePreset('passing');
+ generateSamplePreset('empty');
  }}
  className="w-full bg-white shadow-card border-2 border-gray-200 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-900"
  />
@@ -189,22 +224,14 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
  </div>
 
  <div>
- <label className="text-[11px] text-gray-500 block mb-1">Fifth Schedule Lot Size</label>
- <select
+ <label className="text-[11px] text-gray-500 block mb-1">Batch / Lot Size (N)</label>
+ <input
+ type="number"
  value={lotSize}
- onChange={(e) => {
- const size = parseInt(e.target.value);
- setLotSize(size);
- const newW = Array.from({ length: size }, (_, i) => declaredQty + (i % 2));
- setSampleWeights(newW);
- calculateMpe(newW, declaredQty, unit, tareWeight);
- }}
+ onChange={handleLotSizeChange}
  className="w-full bg-white shadow-card border-2 border-gray-200 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-900"
- >
- <option value={32}>32 Units (Standard Lot)</option>
- <option value={80}>80 Units (Large Lot)</option>
- <option value={20}>20 Units (Small Lot)</option>
- </select>
+ />
+ <span className="text-[10px] text-gray-400 mt-1 block">Required Sample Size (n): <strong className="text-brand-500">{sampleSize}</strong></span>
  </div>
 
  <div className="flex flex-col justify-end space-y-1">
@@ -302,6 +329,22 @@ export default function SeventhScheduleModal({ isOpen, onClose, currentScan }) {
  </div>
  </div>
  )}
+
+ {/* Bulk Data Entry */}
+ <div className="bg-white p-3 rounded-xl border border-gray-200 mb-4">
+   <div className="flex justify-between items-center mb-1.5">
+     <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">Bulk Weight Entry (Paste from Excel)</label>
+     <span className={`text-[10px] px-2 py-0.5 rounded-full ${sampleWeights.length === sampleSize ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+       Count: {sampleWeights.length} / {sampleSize}
+     </span>
+   </div>
+   <textarea
+     value={bulkInput}
+     onChange={handleBulkInputChange}
+     placeholder={`Paste ${sampleSize} comma or newline separated weights here...`}
+     className="w-full h-16 bg-gray-50 border border-gray-200 rounded-lg p-2 text-[10px] font-mono text-gray-700 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+   />
+ </div>
 
  {/* Interactive Weight Grid */}
  <div>

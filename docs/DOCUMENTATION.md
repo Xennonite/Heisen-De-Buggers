@@ -18,6 +18,9 @@ MetroVerity uses **Clerk** for robust, enterprise-grade authentication and JSON 
    `VITE_CLERK_PUBLISHABLE_KEY=pk_test_...`
 3. In the root `backend/.env`, set your secret key:
    `CLERK_SECRET_KEY=sk_test_...`
+4. **CRITICAL STEP:** In the Clerk Dashboard, navigate to **Configure > Sessions > Edit session token** and inject the following JSON:
+   `{"public_metadata": "{{user.public_metadata}}"}`
+   *(This ensures the backend receives the user's role in the JWT for RBAC enforcement).*
 
 ### Defining User Roles
 The platform currently supports three strictly verified roles:
@@ -287,26 +290,26 @@ MetroVerity is engineered as a decoupled, high-performance web platform combinin
 
 ```mermaid
 graph TD
-    subgraph Frontend [React 18 + TailwindCSS Client]
-        UI[Ingestion Form & Presets] --> API_REQ[Axios API Client]
-        API_RESP[Scan Response JSON] --> CANVAS[SVG Visual Overlay Canvas]
-        API_RESP --> CHECKLIST[Compliance Rule Checklist]
-        API_RESP --> GAUGE[Score & Penalty Card]
-        API_RESP --> EXPORTER[ReportLab / Docx Exporter]
-        MODAL[7th Schedule Physical MPE Modal] --> API_REQ
+    subgraph Frontend ["React 18 + TailwindCSS Client"]
+        UI["Ingestion Form & Presets"] --> API_REQ["Axios API Client"]
+        API_RESP["Scan Response JSON"] --> CANVAS["SVG Visual Overlay Canvas"]
+        API_RESP --> CHECKLIST["Compliance Rule Checklist"]
+        API_RESP --> GAUGE["Score & Penalty Card"]
+        API_RESP --> EXPORTER["ReportLab / Docx Exporter"]
+        MODAL["7th Schedule Physical MPE Modal"] --> API_REQ
     end
 
-    subgraph Backend [FastAPI 3.12 Backend Core]
-        API_REQ --> ROUTER[FastAPI API Router]
-        ROUTER --> SCRAPER[Playwright Headless E-Commerce Scraper]
-        ROUTER --> PREPROC[OpenCV Preprocessing & Perspective Warp]
-        ROUTER --> SCALER[Spatial Metric Scaler S = px/mm]
-        ROUTER --> OCR[OCR Wrapper & Pyzbar Barcode Decoder]
-        ROUTER --> CLEARANCE[Rule 8 Clearance Mask Collision Engine]
-        ROUTER --> RULES[Statutory NLP & Metrology Rule Engine]
-        ROUTER --> MPE[First Schedule MPE & Rule 19(6) Statistical Engine]
-        ROUTER --> PDF_GEN[ReportLab PDF & python-docx Generator]
-        ROUTER --> DB[(SQLite Database / SQLAlchemy)]
+    subgraph Backend ["FastAPI 3.12 Backend Core"]
+        API_REQ --> ROUTER["FastAPI API Router"]
+        ROUTER --> SCRAPER["Playwright Headless E-Commerce Scraper"]
+        ROUTER --> PREPROC["OpenCV Preprocessing & Perspective Warp"]
+        ROUTER --> SCALER["Spatial Metric Scaler S = px/mm"]
+        ROUTER --> OCR["OCR Wrapper & Pyzbar Barcode Decoder"]
+        ROUTER --> CLEARANCE["Rule 8 Clearance Mask Collision Engine"]
+        ROUTER --> RULES["Statutory NLP & Metrology Rule Engine"]
+        ROUTER --> MPE["First Schedule MPE & Rule 19(6) Statistical Engine"]
+        ROUTER --> PDF_GEN["ReportLab PDF & python-docx Generator"]
+        ROUTER --> DB[("SQLite Database / SQLAlchemy")]
     end
 ```
 
