@@ -1,36 +1,39 @@
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 import httpx
 import json
+import asyncio
+
+def _fetch_page_content(url: str):
+    import sys
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            viewport={"width": 1920, "height": 1080}
+        )
+        page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        page.evaluate("window.scrollBy(0, 1500)")
+        page.wait_for_timeout(3000)
+        visible_text = page.evaluate("document.body.innerText")
+        page.evaluate("window.scrollTo(0, 0)")
+        page.wait_for_timeout(1000)
+        page_screenshot = page.screenshot(full_page=False)
+        html_content = page.content()
+        browser.close()
+        
+    return visible_text, page_screenshot, html_content
+
 
 async def scrape_ecommerce_listing(url: str):
     """
     Navigates to the URL, extracts visible text, structured metadata, and downloads product images.
     """
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        # Use a realistic User-Agent to prevent anti-bot blocking (e.g. Amazon 404s)
-        page = await browser.new_page(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-            viewport={"width": 1920, "height": 1080}
-        )
-        # Use domcontentloaded instead of networkidle, as e-commerce sites often have long-polling trackers
-        await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        # Scroll down slightly to trigger lazy loading of product images
-        await page.evaluate("window.scrollBy(0, 1500)")
-        # Give JS a moment to render the product details and lazy-load images
-        await page.wait_for_timeout(3000)
-        
-        # Extract rendered text directly from the browser's DOM (ignores hidden junk)
-        visible_text = await page.evaluate("document.body.innerText")
-        
-        await page.evaluate("window.scrollTo(0, 0)") # Scroll back up for the screenshot
-        await page.wait_for_timeout(1000)
-        
-        # Take a screenshot to show the overall page
-        page_screenshot = await page.screenshot(full_page=False)
-        html_content = await page.content()
-        await browser.close()
+    # Run playwright in a background thread to bypass Uvicorn's SelectorEventLoop on Windows
+    visible_text, page_screenshot, html_content = await asyncio.to_thread(_fetch_page_content, url)
 
     soup = BeautifulSoup(html_content, "html.parser")
     
