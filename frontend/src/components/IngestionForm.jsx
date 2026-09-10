@@ -33,8 +33,18 @@ const GEOMETRY_OPTIONS = [
   { value: "irregular", label: "Irregular" },
 ];
 
-export default function IngestionForm({ onScanSubmit, isScanning, currentScan, onModeChange }) {
-  const [mode, setMode] = useState('physical'); // 'physical' or 'url'
+export default function IngestionForm({ onScanSubmit, isScanning, currentScan, initialMode }) {
+  const getInternalMode = (m) => {
+    if (m === 'single') return 'physical';
+    if (m === 'bulk') return 'mpe';
+    if (m === 'web') return 'url';
+    return 'physical';
+  };
+  const [mode, setMode] = useState(getInternalMode(initialMode));
+
+  React.useEffect(() => {
+    setMode(getInternalMode(initialMode));
+  }, [initialMode]);
   
   const [files, setFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
@@ -46,10 +56,6 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan, o
 
   const [url, setUrl] = useState('');
   const [isLooseCommodity, setIsLooseCommodity] = useState(false);
-
-  React.useEffect(() => {
-    if (onModeChange) onModeChange(mode);
-  }, [mode, onModeChange]);
 
   const fileInputRef = useRef(null);
 
@@ -154,34 +160,7 @@ export default function IngestionForm({ onScanSubmit, isScanning, currentScan, o
   return (
     <div className="bg-white shadow-card border-2 border-gray-200 border border-gray-200 rounded-2xl p-6 shadow-xl space-y-6" style={{ colorScheme: 'light' }}>
       <div>
-        {!currentScan && (
-        <div className="flex border-b border-gray-200 mb-4">
-            <button
-                type="button"
-                className={`flex-1 py-2 text-sm font-semibold text-center border-b-2 transition-colors ${mode === 'physical' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                onClick={() => setMode('physical')}
-            >
-                <Layers className="w-4 h-4 inline-block mr-2 -mt-1" />
-                Physical Scan
-            </button>
-            <button
-                type="button"
-                className={`flex-1 py-2 text-sm font-semibold text-center border-b-2 transition-colors ${mode === 'mpe' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                onClick={() => setMode('mpe')}
-            >
-                <Scale className="w-4 h-4 inline-block mr-2 -mt-1" />
-                Bulk Mode
-            </button>
-            <button
-                type="button"
-                className={`flex-1 py-2 text-sm font-semibold text-center border-b-2 transition-colors ${mode === 'url' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                onClick={() => setMode('url')}
-            >
-                <LinkIcon className="w-4 h-4 inline-block mr-2 -mt-1" />
-                E-Comm URL
-            </button>
-        </div>
-        )}
+        {!currentScan && null}
 
         {mode !== 'mpe' && (
         <div className="mb-5">
