@@ -7,41 +7,71 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Clean, legible government-portal stack — no decorative serifs
-        sans: ['"Inter"', '"Noto Sans"', 'system-ui', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
+        sans: ['"JetBrains Mono"', 'monospace'], // Default to mono for UI
       },
       colors: {
-        // ── Primary Shell (dark navy/slate) ──
+        parchment: '#f6f3f1',
+        lakeBlue: '#2b59d1',
+        periwinkle: '#cfdaf5',
+        offBlack: '#242424',
+        ash: '#cecac8',
+        ink: '#000000',
+        graphite: '#4e4d4d',
+        smoke: '#797776',
+        skyBlue: '#a0b5eb',
+        mint: '#a7fccd',
+        coral: '#ff9473',
+        gold: '#ecda98',
+        crimson: '#f37a0a',
+        
+        // Strict Compliance Colors
+        pass: { DEFAULT: '#16A34A', light: '#DCFCE7', border: '#BBF7D0' },
+        warn: { DEFAULT: '#D97706', light: '#FEF3C7', border: '#FDE68A' },
+        fail: { DEFAULT: '#DC2626', light: '#FEE2E2', border: '#FECACA' },
+
+        // Keeping shell/surface around for compatibility if some components still use them temporarily, but migrating away.
         shell: {
-          950: '#0B0F1A', // Deepest navy — app background
-          900: '#111827', // Sidebar background
-          800: '#1E2639', // Sidebar hover / secondary panels
-          700: '#2D3748', // Dividers and borders
-          600: '#4A5568', // Muted text on dark bg
+          950: '#f6f3f1', // Maps to parchment
+          900: '#f6f3f1',
+          800: '#cfdaf5', // Hover surface mapping
+          700: '#cecac8', // Ash borders
+          600: '#797776', // Smoke
         },
-        // ── Content Area (crisp white/light gray) ──
         surface: {
-          50:  '#F9FAFB', // Lightest page bg
-          100: '#F3F4F6', // Card bg
-          200: '#E5E7EB', // Borders/dividers in light context
-          300: '#D1D5DB', // Muted text on light bg
+          50: '#f6f3f1',
+          100: '#f6f3f1',
+          200: '#cecac8',
+          300: '#797776',
         },
-        // ── Brand accent (keep a touch of gold/amber for official feel) ──
         brand: {
-          400: '#FBBF24', // Bright amber — active tabs, highlights
-          500: '#F59E0B', // Primary amber — buttons
-          600: '#D97706', // Hover states
-        },
-        // ── Compliance status colours ──
-        pass:  { DEFAULT: '#16A34A', light: '#DCFCE7', border: '#BBF7D0' },
-        warn:  { DEFAULT: '#D97706', light: '#FEF3C7', border: '#FDE68A' },
-        fail:  { DEFAULT: '#DC2626', light: '#FEE2E2', border: '#FECACA' },
+          400: '#2b59d1', // Lake blue active
+          500: '#2b59d1', // Lake blue primary
+          600: '#1a3b94',
+        }
+      },
+      borderRadius: {
+        'card': '40px',
+        'pill': '9999px',
+        'lg': '16px', // Overriding generic radius to fit better if used
+        'md': '16px',
       },
       boxShadow: {
-        'card': '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
-        'card-hover': '0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06)',
-        'sidebar': 'inset -1px 0 0 rgba(255,255,255,0.05)',
+        'card': 'none',
+        'card-hover': 'rgba(0, 0, 0, 0.1) 0px 0px 10px 0px',
+        'sidebar': 'none',
       },
+      animation: {
+        'float': 'float 6s ease-in-out infinite',
+        'slow-spin': 'spin 30s linear infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        }
+      }
     },
   },
   plugins: [],
