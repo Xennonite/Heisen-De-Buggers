@@ -89,11 +89,11 @@ def extract_mrp(text: str) -> Dict[str, Any]:
     has_tax_tag = False
     raw_snippet = ""
     
-    mrp_match = re.search(r"(?:MRP|M\.R\.P|Max\. Retail Price|Price)[\s\:\.\₹Rs]*([0-9]+(?:\.[0-9]{1,2})?)", text, re.IGNORECASE)
+    mrp_match = re.search(r"(?:MRP|M\.R\.P|Max\. Retail Price|Price)[\s\:\.]*(?:Rs\.?|₹|INR)?[\s]*([0-9]+(?:\.[0-9]{1,2})?)", text, re.IGNORECASE)
     
-    # Fallback for standalone "RS 40/-" or OCR garbles commonly found on metallic stamped bottoms
+    # Fallback for standalone "RS 40/-", "₹245", or OCR garbles commonly found on metallic stamped bottoms
     if not mrp_match:
-        mrp_match = re.search(r"\b(?:Rs\.?|₹|INR)[\s]*([0-9]{1,4}(?:\.[0-9]{1,2})?)(?:/-)?", text, re.IGNORECASE)
+        mrp_match = re.search(r"(?:\bRs\.?|\bINR|₹)[\s]*([0-9]{1,4}(?:\.[0-9]{1,2})?)(?:/-)?\b", text, re.IGNORECASE)
     
     if not mrp_match:
         # Extreme fallback: look for number followed by "/-"

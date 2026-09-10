@@ -29,8 +29,7 @@ def test_health_endpoint():
 
 def test_audit_scan_endpoint():
     img_buf = create_mock_image_bytes()
-    response = client.post(
-        "/api/v1/audit/scan",
+    response = client.post("/api/v1/audit/scan", headers={"X-Mock-Role": "ADMIN"},
         files={"files": ("test_package.jpg", img_buf, "image/jpeg")},
         data={
             "package_height_mm": "150.0",
@@ -51,8 +50,7 @@ def test_audit_scan_endpoint():
 
 
 def test_mpe_check_endpoint():
-    response = client.post(
-        "/api/v1/test/mpe-check",
+    response = client.post("/api/v1/test/mpe-check", headers={"X-Mock-Role": "ADMIN"},
         json={
             "declared_quantity": 100.0,
             "unit": "g",
@@ -69,8 +67,7 @@ def test_mpe_check_endpoint():
 
 
 def test_export_report_pdf():
-    response = client.post(
-        "/api/v1/report/export",
+    response = client.post("/api/v1/report/export", headers={"X-Mock-Role": "ADMIN"},
         json={
             "scan_id": "TEST-001",
             "export_type": "pdf",
@@ -93,8 +90,7 @@ def test_export_report_pdf():
 
 
 def test_export_report_docx():
-    response = client.post(
-        "/api/v1/report/export",
+    response = client.post("/api/v1/report/export", headers={"X-Mock-Role": "ADMIN"},
         json={
             "scan_id": "TEST-001",
             "export_type": "docx",
@@ -112,8 +108,7 @@ def test_export_report_docx():
 
 
 def test_export_report_csv():
-    response = client.post(
-        "/api/v1/report/export",
+    response = client.post("/api/v1/report/export", headers={"X-Mock-Role": "ADMIN"},
         json={
             "scan_id": "TEST-001",
             "export_type": "csv",
