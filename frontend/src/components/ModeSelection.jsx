@@ -33,12 +33,16 @@ export default function ModeSelection({ onSelectMode }) {
   return (
     <div className="relative min-h-screen bg-parchment flex items-center justify-center p-6 overflow-hidden">
       
-      {/* Interactive Golden Particles */}
-      <InteractiveBackground density={50} speed={0.3} glowColor="#ecda98" />
+      {/* Background Gradient & Interactive Golden Particles */}
+      <div className="absolute inset-0 z-0">
+        <div className="bg-wash-warm opacity-70"></div>
+      </div>
+      <InteractiveBackground density={120} speed={0.4} glowColor="#ecda98" />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h1 className="font-serif text-5xl text-offBlack mb-4">MetroVerity</h1>
+        <div className="text-center mb-16 flex flex-col items-center">
+          <img src="/logo.jpg" alt="MetroVerity Logo" className="w-20 h-20 rounded-full border border-ash/60 shadow-md object-cover mb-6" />
+          <h1 className="font-serif text-5xl text-offBlack mb-4 drop-shadow-sm">MetroVerity</h1>
           <p className="font-mono text-graphite text-lg">Select an operational mode to begin statutory enforcement.</p>
         </div>
 
