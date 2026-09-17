@@ -7,7 +7,7 @@ const client = axios.create({
 });
 
 client.interceptors.request.use(async (config) => {
-  const devRole = import.meta.env.VITE_DEV_ROLE;
+  const devRole = import.meta.env.VITE_DEV_ROLE || localStorage.getItem('MOCK_ROLE');
   if (devRole) {
     config.headers['X-Mock-Role'] = devRole;
     return config;

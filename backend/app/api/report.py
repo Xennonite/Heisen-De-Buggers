@@ -149,71 +149,111 @@ def generate_pdf_report(data: Dict[str, Any], form_type: Optional[str] = None) -
     story.append(t_overview)
     story.append(Spacer(1, 10))
 
-    # Declarations Table
-    story.append(Paragraph("1. Statutory Declarations Verification (Rules 6 & 10)", section_heading))
-    decls = data.get("declarations", {})
-    decl_rows = [
-        [Paragraph("<b>Mandatory Parameter</b>", bold_body), Paragraph("<b>Status</b>", bold_body), Paragraph("<b>Extracted Finding</b>", bold_body)]
-    ]
-    for key, label in [
-        ("manufacturer_name", "Manufacturer / Packer Name"),
-        ("manufacturer_address", "Manufacturer Address"),
-        ("pin_code", "6-Digit Postal PIN Code"),
-        ("country_of_origin", "Country of Origin"),
-        ("mfg_date", "Date of Mfg / Packing"),
-        ("consumer_care", "Consumer Care Details"),
-    ]:
-        item = decls.get(key, {})
-        pres = item.get("present", False)
-        st_text = "<font color='#16a34a'>PASS</font>" if pres else "<font color='#dc2626'>FAIL</font>"
-        detail = item.get("text") or item.get("code") or item.get("phone") or ("Found" if pres else "NOT DETECTED")
-        decl_rows.append([Paragraph(label, body_style), Paragraph(st_text, body_style), Paragraph(str(detail), body_style)])
+    is_ecomm = data.get("container_type") == "e-commerce"
 
-    t_decl = Table(decl_rows, colWidths=[170, 70, 300])
-    t_decl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e0f2fe")),
-        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-        ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-    ]))
-    story.append(t_decl)
-    story.append(Spacer(1, 10))
+    if is_ecomm:
+        story.append(Paragraph("1. E-Commerce Digital Network Declarations", section_heading))
+        is_loose = data.get("is_loose_commodity", False)
+        web = data.get("web_declarations", {})
+        ocr = data.get("ocr_declarations", {})
+        
+        decl_rows = [
+            [Paragraph("<b>Mandatory Parameter</b>", bold_body), Paragraph("<b>Web Finding</b>", bold_body), Paragraph("<b>OCR Finding</b>", bold_body)]
+        ]
+        
+        def format_val(v):
+            if isinstance(v, bool):
+                return "PRESENT" if v else "NOT DETECTED"
+            return str(v) if v is not None and v != "" and v is not False else "NOT DETECTED"
+            
+        # Common fields
+        decl_rows.append([Paragraph("Manufacturer / Seller", body_style), Paragraph(format_val(web.get("manufacturer_name")), body_style), Paragraph(format_val(ocr.get("manufacturer_name")), body_style)])
+        decl_rows.append([Paragraph("MRP", body_style), Paragraph(format_val(web.get("mrp")), body_style), Paragraph(format_val(ocr.get("mrp")), body_style)])
+        decl_rows.append([Paragraph("Consumer Care", body_style), Paragraph(format_val(web.get("consumer_care")), body_style), Paragraph("N/A", body_style)])
+        decl_rows.append([Paragraph("Country of Origin", body_style), Paragraph(format_val(web.get("country_of_origin")), body_style), Paragraph(format_val(ocr.get("country_of_origin")), body_style)])
+        
+        if is_loose:
+            decl_rows.append([Paragraph("Sizes (Rule 26g)", body_style), Paragraph(format_val(web.get("net_quantity")), body_style), Paragraph(format_val(ocr.get("net_quantity")), body_style)])
+        else:
+            decl_rows.append([Paragraph("Net Quantity (Rule 6(10))", body_style), Paragraph(format_val(web.get("net_quantity")), body_style), Paragraph(format_val(ocr.get("net_quantity")), body_style)])
 
-    # Net Quantity & MRP Table
-    story.append(Paragraph("2. Metrological Quantities & Typography (Rules 7, 8, 13)", section_heading))
-    nq = data.get("net_quantity", {})
-    mrp = data.get("mrp", {})
-    cz = data.get("clearance_zone", {})
-    
-    qty_rows = [
-        [Paragraph("<b>Parameter</b>", bold_body), Paragraph("<b>Extracted Value</b>", bold_body), Paragraph("<b>Requirement / Status</b>", bold_body)],
-        [
-            Paragraph("Net Quantity", body_style),
-            Paragraph(f"{nq.get('declared_value', 'N/A')} {nq.get('unit', '')}", body_style),
-            Paragraph(f"Font: {nq.get('measured_font_height_mm', 'N/A')} mm (Req: {data.get('required_font_height_mm', 0)} mm) — {'PASS' if nq.get('font_compliant') else 'FAIL'}", body_style)
-        ],
-        [
-            Paragraph("MRP Declaration", body_style),
-            Paragraph(f"Rs. {mrp.get('declared_price', 'N/A')}", body_style),
-            Paragraph(f"Tax Tag: {'Included (PASS)' if mrp.get('has_inclusive_of_taxes_tag') else 'MISSING (FAIL)'}", body_style)
-        ],
-        [
-            Paragraph("Rule 8 Clearance Zone", body_style),
-            Paragraph(f"{'No Encroachment' if cz.get('is_compliant') else 'Encroached'}", body_style),
-            Paragraph(f"Status: {'PASS' if cz.get('is_compliant') else 'FAIL'}", body_style)
-        ],
-    ]
-    t_qty = Table(qty_rows, colWidths=[150, 150, 240])
-    t_qty.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1f5f9")),
-        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-        ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-    ]))
-    story.append(t_qty)
-    story.append(Spacer(1, 10))
+        t_decl = Table(decl_rows, colWidths=[150, 150, 240])
+        t_decl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e0f2fe")),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.append(t_decl)
+        story.append(Spacer(1, 10))
+    else:
+        # Declarations Table
+        story.append(Paragraph("1. Statutory Declarations Verification (Rules 6 & 10)", section_heading))
+        decls = data.get("declarations", {})
+        decl_rows = [
+            [Paragraph("<b>Mandatory Parameter</b>", bold_body), Paragraph("<b>Status</b>", bold_body), Paragraph("<b>Extracted Finding</b>", bold_body)]
+        ]
+        for key, label in [
+            ("manufacturer_name", "Manufacturer / Packer Name"),
+            ("manufacturer_address", "Manufacturer Address"),
+            ("pin_code", "6-Digit Postal PIN Code"),
+            ("country_of_origin", "Country of Origin"),
+            ("mfg_date", "Date of Mfg / Packing"),
+            ("consumer_care", "Consumer Care Details"),
+        ]:
+            item = decls.get(key, {})
+            pres = item.get("present", False)
+            st_text = "<font color='#16a34a'>PASS</font>" if pres else "<font color='#dc2626'>FAIL</font>"
+            detail = item.get("text") or item.get("code") or item.get("phone") or ("Found" if pres else "NOT DETECTED")
+            decl_rows.append([Paragraph(label, body_style), Paragraph(st_text, body_style), Paragraph(str(detail), body_style)])
+
+        t_decl = Table(decl_rows, colWidths=[170, 70, 300])
+        t_decl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e0f2fe")),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.append(t_decl)
+        story.append(Spacer(1, 10))
+
+        # Net Quantity & MRP Table
+        story.append(Paragraph("2. Metrological Quantities & Typography (Rules 7, 8, 13)", section_heading))
+        nq = data.get("net_quantity", {})
+        mrp = data.get("mrp", {})
+        cz = data.get("clearance_zone", {})
+        
+        qty_rows = [
+            [Paragraph("<b>Parameter</b>", bold_body), Paragraph("<b>Extracted Value</b>", bold_body), Paragraph("<b>Requirement / Status</b>", bold_body)],
+            [
+                Paragraph("Net Quantity", body_style),
+                Paragraph(f"{nq.get('declared_value', 'N/A')} {nq.get('unit', '')}", body_style),
+                Paragraph(f"Font: {nq.get('measured_font_height_mm', 'N/A')} mm (Req: {data.get('required_font_height_mm', 0)} mm) — {'PASS' if nq.get('font_compliant') else 'FAIL'}", body_style)
+            ],
+            [
+                Paragraph("MRP Declaration", body_style),
+                Paragraph(f"Rs. {mrp.get('declared_price', 'N/A')}", body_style),
+                Paragraph(f"Tax Tag: {'Included (PASS)' if mrp.get('has_inclusive_of_taxes_tag') else 'MISSING (FAIL)'}", body_style)
+            ],
+            [
+                Paragraph("Rule 8 Clearance Zone", body_style),
+                Paragraph(f"{'No Encroachment' if cz.get('is_compliant') else 'Encroached'}", body_style),
+                Paragraph(f"Status: {'PASS' if cz.get('is_compliant') else 'FAIL'}", body_style)
+            ],
+        ]
+        t_qty = Table(qty_rows, colWidths=[150, 150, 240])
+        t_qty.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1f5f9")),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.append(t_qty)
+        story.append(Spacer(1, 10))
+
 
     # Violations Table
     violations = data.get("violations", [])
@@ -304,29 +344,61 @@ def generate_docx_report(data: Dict[str, Any]) -> io.BytesIO:
     p.add_run(f"Principal Display Panel Area: {data.get('pdp_area_cm2', 0)} cm²\n")
     p.add_run(f"Required Minimum Font Height: {data.get('required_font_height_mm', 0)} mm\n")
 
-    # Declarations Table
-    doc.add_heading("2. Mandatory Declarations (Rules 6 & 10)", level=1)
-    decls = data.get("declarations", {})
-    t = doc.add_table(rows=1, cols=3)
-    t.style = "Table Grid"
-    hdr = t.rows[0].cells
-    hdr[0].text = "Mandatory Parameter"
-    hdr[1].text = "Status"
-    hdr[2].text = "Finding"
+    is_ecomm = data.get("container_type") == "e-commerce"
 
-    for key, label in [
-        ("manufacturer_name", "Manufacturer Name"),
-        ("manufacturer_address", "Manufacturer Address"),
-        ("pin_code", "6-Digit PIN Code"),
-        ("country_of_origin", "Country of Origin"),
-        ("mfg_date", "Date of Packing"),
-        ("consumer_care", "Consumer Care"),
-    ]:
-        item = decls.get(key, {})
-        row = t.add_row().cells
-        row[0].text = label
-        row[1].text = "PASS" if item.get("present") else "FAIL"
-        row[2].text = str(item.get("text") or item.get("code") or item.get("phone") or "N/A")
+    if is_ecomm:
+        doc.add_heading("2. E-Commerce Declarations", level=1)
+        is_loose = data.get("is_loose_commodity", False)
+        web = data.get("web_declarations", {})
+        ocr = data.get("ocr_declarations", {})
+        t = doc.add_table(rows=1, cols=3)
+        t.style = "Table Grid"
+        hdr = t.rows[0].cells
+        hdr[0].text = "Parameter"
+        hdr[1].text = "Web"
+        hdr[2].text = "OCR"
+        
+        def format_val(v):
+            if isinstance(v, bool): return "PRESENT" if v else "NOT DETECTED"
+            return str(v) if v is not None and v != "" and v is not False else "NOT DETECTED"
+            
+        rows = [
+            ("Manufacturer / Seller", web.get("manufacturer_name"), ocr.get("manufacturer_name")),
+            ("MRP", web.get("mrp"), ocr.get("mrp")),
+            ("Consumer Care", web.get("consumer_care"), "N/A"),
+            ("Country of Origin", web.get("country_of_origin"), ocr.get("country_of_origin")),
+            ("Sizes (Rule 26g)" if is_loose else "Net Quantity (Rule 6(10))", web.get("net_quantity"), ocr.get("net_quantity"))
+        ]
+        
+        for lbl, w, o in rows:
+            row = t.add_row().cells
+            row[0].text = lbl
+            row[1].text = format_val(w)
+            row[2].text = format_val(o)
+    else:
+        # Declarations Table
+        doc.add_heading("2. Mandatory Declarations (Rules 6 & 10)", level=1)
+        decls = data.get("declarations", {})
+        t = doc.add_table(rows=1, cols=3)
+        t.style = "Table Grid"
+        hdr = t.rows[0].cells
+        hdr[0].text = "Mandatory Parameter"
+        hdr[1].text = "Status"
+        hdr[2].text = "Finding"
+
+        for key, label in [
+            ("manufacturer_name", "Manufacturer Name"),
+            ("manufacturer_address", "Manufacturer Address"),
+            ("pin_code", "6-Digit PIN Code"),
+            ("country_of_origin", "Country of Origin"),
+            ("mfg_date", "Date of Packing"),
+            ("consumer_care", "Consumer Care"),
+        ]:
+            item = decls.get(key, {})
+            row = t.add_row().cells
+            row[0].text = label
+            row[1].text = "PASS" if item.get("present") else "FAIL"
+            row[2].text = str(item.get("text") or item.get("code") or item.get("phone") or "N/A")
 
     # Violations
     doc.add_heading("3. Statutory Violations", level=1)
@@ -372,10 +444,29 @@ def generate_csv_report(data: Dict[str, Any]) -> str:
     writer.writerow(["Required Font Height (mm)", data.get("required_font_height_mm", 0)])
     writer.writerow([])
 
-    writer.writerow(["--- Mandatory Declarations ---"])
-    decls = data.get("declarations", {})
-    for k, v in decls.items():
-        writer.writerow([k, "PRESENT" if v.get("present") else "MISSING", v.get("text") or v.get("code") or v.get("phone") or ""])
+    is_ecomm = data.get("container_type") == "e-commerce"
+
+    if is_ecomm:
+        writer.writerow(["--- E-Commerce Declarations ---"])
+        is_loose = data.get("is_loose_commodity", False)
+        web = data.get("web_declarations", {})
+        ocr = data.get("ocr_declarations", {})
+        writer.writerow(["Parameter", "Web", "OCR"])
+        
+        def format_val(v):
+            if isinstance(v, bool): return "PRESENT" if v else "NOT DETECTED"
+            return str(v) if v is not None and v != "" and v is not False else "NOT DETECTED"
+            
+        writer.writerow(["Manufacturer / Seller", format_val(web.get("manufacturer_name")), format_val(ocr.get("manufacturer_name"))])
+        writer.writerow(["MRP", format_val(web.get("mrp")), format_val(ocr.get("mrp"))])
+        writer.writerow(["Consumer Care", format_val(web.get("consumer_care")), "N/A"])
+        writer.writerow(["Country of Origin", format_val(web.get("country_of_origin")), format_val(ocr.get("country_of_origin"))])
+        writer.writerow(["Sizes (Rule 26g)" if is_loose else "Net Quantity (Rule 6(10))", format_val(web.get("net_quantity")), format_val(ocr.get("net_quantity"))])
+    else:
+        writer.writerow(["--- Mandatory Declarations ---"])
+        decls = data.get("declarations", {})
+        for k, v in decls.items():
+            writer.writerow([k, "PRESENT" if v.get("present") else "MISSING", v.get("text") or v.get("code") or v.get("phone") or ""])
 
     writer.writerow([])
     writer.writerow(["--- Statutory Violations ---"])

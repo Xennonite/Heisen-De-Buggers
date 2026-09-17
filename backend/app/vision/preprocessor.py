@@ -17,27 +17,56 @@ def load_image_with_exif(image_path: str) -> np.ndarray:
 
 def get_product_pixel_bounds(image: np.ndarray) -> tuple:
     """
-    Analyzes the image to find the true pixel height AND width of the object,
-    ignoring solid white (or near-white) backgrounds common in e-commerce renders.
+    Analyzes the image to find the true pixel height AND width of the object using robust Canny edge detection.
+    This works on both white backgrounds and cluttered physical environments.
     Returns (height, width) of the object. If detection fails, returns (full_image_h, full_image_w).
     """
     img_h, img_w = image.shape[:2]
+    
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     
-    # Threshold: Object becomes white (255), background (if >240) becomes black (0)
-    _, thresh = cv2.threshold(gray, 240, 255, cv2.THRESH_BINARY_INV)
+    # Auto-Canny to handle different lighting
+    v = np.median(blurred)
+    sigma = 0.33
+    lower = int(max(0, (1.0 - sigma) * v))
+    upper = int(min(255, (1.0 + sigma) * v))
+    edged = cv2.Canny(blurred, lower, upper)
     
-    coords = cv2.findNonZero(thresh)
-    if coords is None:
+    # Close gaps between edges to form a solid object contour
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
+    closed = cv2.morphologyEx(edged, cv2.MORPH_CLOSE, kernel)
+    
+    contours, _ = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if not contours:
         return (img_h, img_w)
         
-    x, y, w, h = cv2.boundingRect(coords)
+    # Filter out tiny noise contours
+    min_area = (img_h * img_w) * 0.01
+    valid_contours = [c for c in contours if cv2.contourArea(c) > min_area]
     
-    # Ignore if it thinks the object is tiny (e.g. less than 10% of image height)
-    if h < (img_h * 0.1):
+    if not valid_contours:
+        valid_contours = [max(contours, key=cv2.contourArea)]
+        
+    # Get bounding box encompassing all valid object contours
+    x_min, y_min = img_w, img_h
+    x_max, y_max = 0, 0
+    
+    for c in valid_contours:
+        x, y, w, h = cv2.boundingRect(c)
+        x_min = min(x_min, x)
+        y_min = min(y_min, y)
+        x_max = max(x_max, x + w)
+        y_max = max(y_max, y + h)
+        
+    final_w = x_max - x_min
+    final_h = y_max - y_min
+    
+    if final_h < (img_h * 0.1) or final_w < (img_w * 0.1):
         return (img_h, img_w)
         
-    return (h, w)
+    return (final_h, final_w)
 
 
 def get_product_pixel_height(image: np.ndarray) -> int:

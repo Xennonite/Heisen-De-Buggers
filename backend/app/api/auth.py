@@ -74,7 +74,11 @@ def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials
             token,
             public_key,
             algorithms=["RS256"],
-            options={"verify_aud": False} # Frontend app handles audience
+            options={
+                "verify_aud": False, 
+                "verify_iat": False, 
+                "verify_nbf": False
+            } # Frontend app handles audience, bypass clock checks for hackathon demo stability
         )
         return payload
     except jwt.ExpiredSignatureError:

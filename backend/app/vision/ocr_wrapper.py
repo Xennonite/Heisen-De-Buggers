@@ -87,6 +87,10 @@ def _ocr_single_pass(image_bgr: np.ndarray, scale_factor: float, required_font_h
             # Distance formula for rotated height (p1 to p4 is usually the short edge)
             h_px = math.dist(p1, p4)
             
+            # Apply padding adjustment factor to get truer character height (removes bounding box padding)
+            PADDING_ADJUSTMENT = 0.85
+            h_px = h_px * PADDING_ADJUSTMENT
+            
             xs = [p[0] for p in box]
             ys = [p[1] for p in box]
             x_min, x_max = min(xs), max(xs)

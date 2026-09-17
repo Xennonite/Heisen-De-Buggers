@@ -12,7 +12,6 @@
     "dev:manufacturer": "cross-env VITE_DEV_ROLE=MANUFACTURER vite"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.61.9",
     "axios": "^1.6.8",
     "clsx": "^2.1.0",
     "lucide-react": "^0.359.0",

@@ -268,6 +268,7 @@ async def audit_ecommerce_url(
     audit_results["url"] = request.url
     audit_results["scan_id"] = scan_id
     audit_results["timestamp"] = datetime.now(timezone.utc).isoformat()
+    audit_results["container_type"] = "e-commerce" 
     
     if saved_images:
         audit_results["surfaces"] = saved_images

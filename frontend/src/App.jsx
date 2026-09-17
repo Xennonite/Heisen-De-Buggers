@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {Scale, Search, Activity, ArrowRight, Loader2, Plus, Clock,
   FileText, Eye, ChevronLeft, ChevronRight, ShieldCheck, AlertTriangle, ShieldAlert,
 Trash2, Box, CheckSquare, Check, LogOut} from 'lucide-react';
-import { SignedIn, SignedOut, UserButton, SignIn, useUser, useClerk } from '@clerk/clerk-react';
 import IngestionForm from './components/IngestionForm';
 import VisualOverlay from './components/VisualOverlay';
 import ComplianceChecklist from './components/ComplianceChecklist';
@@ -345,7 +344,7 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, i
       {/* Tab content */}
       <div className="flex-1 overflow-hidden relative">
         {isManufacturer && !currentScan && (
-           <div className="absolute inset-0 flex flex-col items-center justify-center bg-white text-smoke p-6">
+           <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent text-smoke p-6">
                <div className="text-center p-10 bg-white shadow-xl rounded-card border border-ash max-w-sm w-full">
                    <Box className="w-12 h-12 text-ash mx-auto mb-6" />
                    <h2 className="text-2xl font-serif text-offBlack mb-2">Manufacturer Portal</h2>
@@ -395,29 +394,44 @@ function DossierTabs({ currentScan, currentImageUrl, isScanning, onScanSubmit, i
 
 // ─── Root App ──────────────────────────────────────────────────────────────
 export default function App() {
-  const devRole = import.meta.env.VITE_DEV_ROLE;
-  if (devRole) {
-    const mockUser = {
-      fullName: "Dev Mode " + devRole,
-      publicMetadata: { role: devRole }
-    };
-    return <AppFlow user={mockUser} isDev={true} />;
-  }
-  return <ClerkApp />;
-}
+  const envRole = import.meta.env.VITE_DEV_ROLE;
+  
+  const [user, setUser] = useState(() => {
+    const savedRole = localStorage.getItem('MOCK_ROLE');
+    if (envRole) {
+      return {
+        fullName: "Offline Mode (" + envRole + ")",
+        publicMetadata: { role: envRole }
+      };
+    } else if (savedRole) {
+      return {
+        fullName: "Demo User",
+        primaryEmailAddress: { emailAddress: 'demo@local' },
+        publicMetadata: { role: savedRole }
+      };
+    }
+    return null;
+  });
 
-function ClerkApp() {
-  const { user } = useUser();
-  return (
-    <>
-      <SignedOut>
-        <AppFlow user={null} isDev={false} />
-      </SignedOut>
-      <SignedIn>
-        <AppFlow user={user} isDev={false} />
-      </SignedIn>
-    </>
-  );
+  const handleLogin = (selectedRole) => {
+    localStorage.setItem('MOCK_ROLE', selectedRole);
+    setUser({
+      fullName: "Demo User",
+      primaryEmailAddress: { emailAddress: 'demo@local' },
+      publicMetadata: { role: selectedRole }
+    });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('MOCK_ROLE');
+    setUser(null);
+  };
+
+  if (!user) {
+    return <LandingPage onDevLogin={handleLogin} />;
+  }
+
+  return <AppFlow user={user} isDev={true} onLogout={handleLogout} />;
 }
 
 function AppFlow({ user, isDev }) {
@@ -458,13 +472,9 @@ function AppFlow({ user, isDev }) {
             <span className="text-[11px] font-mono font-semibold text-offBlack">{user?.fullName || user?.primaryEmailAddress?.emailAddress}</span>
             <span className="text-[9px] font-mono text-lakeBlue uppercase tracking-wider">{role.replace('_', ' ')}</span>
           </div>
-          {isDev ? (
-            <button onClick={() => setView('LANDING')} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-sm font-serif font-bold text-offBlack border border-ash/50">
-              {user?.fullName?.charAt(0) || 'D'}
-            </button>
-          ) : (
-            <UserButton />
-          )}
+          <button onClick={() => { localStorage.removeItem('MOCK_ROLE'); window.location.reload(); }} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-sm font-serif font-bold text-offBlack border border-ash/50 hover:bg-slate-100 transition" title="Logout">
+            {user?.fullName?.charAt(0) || 'D'}
+          </button>
         </div>
         <ModeSelection onSelectMode={handleSelectMode} />
       </>
@@ -555,13 +565,9 @@ function DashboardContent({ user, appMode, onBackToModes }) {
               <span className="text-xs font-semibold text-offBlack">{user?.fullName || user?.primaryEmailAddress?.emailAddress}</span>
               <span className="text-[9px] text-lakeBlue uppercase tracking-wider mt-0.5">{role.replace('_', ' ')}</span>
             </div>
-            {import.meta.env.VITE_DEV_ROLE ? (
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-sm font-serif font-bold text-offBlack border border-ash">
-                {user?.fullName?.charAt(0) || 'D'}
-              </div>
-            ) : (
-              <UserButton />
-            )}
+            <button onClick={() => { localStorage.removeItem('MOCK_ROLE'); window.location.reload(); }} className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-sm font-serif font-bold text-offBlack border border-ash hover:bg-slate-100 transition cursor-pointer" title="Logout">
+              {user?.fullName?.charAt(0) || 'D'}
+            </button>
           </div>
         </div>
       </div>

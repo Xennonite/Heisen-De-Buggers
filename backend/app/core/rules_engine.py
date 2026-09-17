@@ -741,6 +741,8 @@ def evaluate_ecommerce_cross_verification(web_text: str, ocr_text: str, is_loose
     # 2. Extract from OCR
     ocr_mrp = extract_mrp(ocr_text)
     ocr_qty = extract_net_quantity(ocr_text, [])
+    ocr_country_present, ocr_country = extract_country_of_origin(ocr_text)
+    ocr_mfg_name = bool(re.search(r"(?:mfd[\s\.]*by|manufactured by|packed by|marketed by|seller|brand)", ocr_text, re.IGNORECASE))
 
     # --- Rule 6(10) or 26(g) Checks ---
     if is_loose_commodity:
@@ -816,10 +818,13 @@ def evaluate_ecommerce_cross_verification(web_text: str, ocr_text: str, is_loose
             "mrp": web_mrp["declared_price"],
             "net_quantity": web_qty["declared_value"],
             "country_of_origin": web_country,
-            "consumer_care": web_care["present"]
+            "consumer_care": web_care["present"],
+            "manufacturer_name": web_mfg_name
         },
         "ocr_declarations": {
             "mrp": ocr_mrp["declared_price"],
-            "net_quantity": ocr_qty["declared_value"]
+            "net_quantity": ocr_qty["declared_value"],
+            "country_of_origin": ocr_country,
+            "manufacturer_name": ocr_mfg_name
         }
     }
