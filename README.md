@@ -3,7 +3,7 @@
 MetroVerity is an automated Legal Metrology compliance verification and statutory enforcement MVP designed to protect consumers and empower enforcement officers under **The Legal Metrology Act, 2009** and **The Legal Metrology (Packaged Commodities) Rules, 2011**.
 
 > [!NOTE]
-> **Smart India Hackathon (SIH 2026)** | **Problem Statement ID:** 26034 | **Organization:** Ministry of Consumer Affairs, Food & Public Distribution
+> **Organization:** Ministry of Consumer Affairs, Food & Public Distribution
 
 ## 🚀 Key Features
 
